@@ -1,0 +1,114 @@
+{
+  "name": "mixfade",
+  "private": true,
+  "version": "0.9.4",
+  "description": "MixFade - Professional DJ mixing application with seamless crossfading capabilities",
+  "author": "MixFade Team",
+  "type": "module",
+  "main": "dist/main/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:main && npm run build:renderer",
+    "build:renderer": "vite build",
+    "build:icon": "node scripts/convert-to-ico.mjs",
+    "build:main": "node scripts/create-window-icon.mjs && rimraf dist/main && tsc -p tsconfig.main.json && mkdirp dist/main && copyfiles -f src/main/preload.js dist/main/ && copyfiles public/mixfade_icon-icoext.ico dist/main/ && copyfiles public/mixfade_window_icon.png dist/main/ && node scripts/rename-main.mjs",
+    "start": "electron .",
+    "electron:dev": "npm run build:main && concurrently -k \"vite\" \"wait-on tcp:5173 && electron . --dev\"",
+    "electron:start": "electron . --dev",
+    "patch-electron-icon": "node scripts/patch-electron-icon.js",
+    "restore-electron-icon": "node scripts/patch-electron-icon.js restore",
+    "electron:dev-with-icon": "npm run patch-electron-icon && npm run electron:dev",
+    "dist": "npm run build && electron-builder",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "setup:s3": "node scripts/setup-s3.js",
+    "create:installer": "node scripts/create-installer.js",
+    "create:installer:mac": "node scripts/create-installer-mac.js",
+    "upload:installer": "node scripts/upload-installer.js",
+    "upload:installer:exe": "node scripts/upload-exe-installer.js",
+    "upload:installer:mac": "node scripts/upload-installer-mac.js",
+    "upload:all-platforms": "node scripts/upload-all-platforms.js",
+    "verify:build": "node scripts/verify-build.js",
+    "build:exe": "node scripts/build-exe-installer.js",
+    "deploy:exe": "npm run build:exe && npm run upload:installer:exe",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "build:all-platforms": "npm run build && electron-builder --win --mac --linux"
+  },
+  "dependencies": {
+    "@formspree/react": "^3.0.0",
+    "lucide-react": "^0.344.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "wavesurfer.js": "^7.7.3"
+  },
+  "homepage": "./",
+  "build": {
+    "appId": "com.mixfade.app",
+    "productName": "MixFade",
+    "files": [
+      "dist-renderer/**/*",
+      "dist/main/**/*",
+      "node_modules/**/*"
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "release"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/mixfade_icon-icoext.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "public/mixfade_icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "icon": "public/mixfade_icon.png"
+    }
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.3.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.8",
+    "@types/react": "^18.3.17",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "archiver": "^7.0.1",
+    "autoprefixer": "^10.4.20",
+    "aws-sdk": "^2.1691.0",
+    "concurrently": "^8.2.2",
+    "copyfiles": "^2.4.1",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.5",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "electron-packager": "^17.1.2",
+    "eslint": "^9.17.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "globals": "^15.14.0",
+    "jest": "^30.0.3",
+    "jest-environment-jsdom": "^30.0.2",
+    "postcss": "^8.5.6",
+    "rcedit": "^4.0.1",
+    "rimraf": "^6.0.1",
+    "sharp": "^0.34.2",
+    "tailwindcss": "^3.4.17",
+    "ts-jest": "^29.4.0",
+    "typescript": "~5.6.2",
+    "typescript-eslint": "^8.18.2",
+    "vite": "^6.0.3",
+    "wait-on": "^7.2.0"
+  }
+}

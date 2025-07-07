@@ -1,0 +1,398 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-optical-sizing: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .font-mono {
+    font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+    font-feature-settings: "liga" 1, "calt" 1;
+  }
+
+  /* Comprehensive outline and focus ring removal */
+  *,
+  *::before,
+  *::after,
+  *:focus,
+  *:focus-visible,
+  *:focus-within,
+  *:active {
+    outline: none !important;
+    outline-width: 0 !important;
+    outline-style: none !important;
+    outline-color: transparent !important;
+    box-shadow: none !important;
+  }
+  
+  /* Target specific interactive elements */
+  button,
+  input,
+  textarea,
+  select,
+  a,
+  [tabindex],
+  [role="button"] {
+    outline: none !important;
+    outline-width: 0 !important;
+    outline-style: none !important;
+    outline-color: transparent !important;
+  }
+
+  /* Remove browser-specific focus indicators */
+  button:focus,
+  button:focus-visible,
+  button:active,
+  input:focus,
+  input:focus-visible,
+  input:active,
+  textarea:focus,
+  textarea:focus-visible,
+  select:focus,
+  select:focus-visible {
+    outline: none !important;
+    outline-width: 0 !important;
+    outline-offset: 0 !important;
+    box-shadow: none !important;
+    border-color: inherit !important;
+  }
+
+  /* Remove webkit/moz specific outlines and focus rings */
+  *::-moz-focus-inner,
+  *::-moz-focus-outer {
+    border: 0 !important;
+    outline: none !important;
+    outline-width: 0 !important;
+  }
+  
+  *::-webkit-focus-ring-color {
+    outline-color: transparent !important;
+  }
+
+  /* Remove any system focus indicators */
+  input[type="file"]:focus,
+  input[type="file"]:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-slate-900/80 backdrop-blur-xl;
+  }
+  
+  .neon-glow {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3), 0 0 40px rgba(59, 130, 246, 0.1);
+  }
+  
+  .neon-glow-orange {
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.3), 0 0 40px rgba(249, 115, 22, 0.1);
+  }
+  
+  .neon-glow-green {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.3), 0 0 40px rgba(16, 185, 129, 0.1);
+  }
+  
+  .neon-glow-purple {
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(139, 92, 246, 0.1);
+  }
+  
+  .neon-glow-fusion {
+    box-shadow: 
+      0 0 20px rgba(16, 185, 129, 0.2), 
+      0 0 40px rgba(139, 92, 246, 0.2),
+      0 0 60px rgba(16, 185, 129, 0.1),
+      0 0 80px rgba(139, 92, 246, 0.1);
+  }
+  
+  .audio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .meter-gradient {
+    background: linear-gradient(90deg, 
+      #10b981 0%, 
+      #10b981 60%, 
+      #f59e0b 75%, 
+      #ef4444 90%
+    );
+  }
+
+  /* Custom slider styles for volume control */
+  .slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+  }
+
+  .slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+  }
+
+  .slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Crossfade slider styles */
+  .crossfade-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 16px;
+    border-radius: 8px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  .crossfade-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #8b5cf6);
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+    border: 2px solid #ffffff;
+  }
+
+  .crossfade-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .crossfade-slider::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #8b5cf6);
+    cursor: pointer;
+    border: 2px solid #ffffff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s ease;
+  }
+
+  .crossfade-slider::-moz-range-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Gradient border utilities */
+  .border-gradient-to-r {
+    border-image: linear-gradient(to right, var(--tw-gradient-stops)) 1;
+  }
+  
+  .from-emerald-500\/20 {
+    --tw-gradient-from: rgb(16 185 129 / 0.2);
+    --tw-gradient-to: rgb(16 185 129 / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  
+  .to-purple-500\/20 {
+    --tw-gradient-to: rgb(139 92 246 / 0.2);
+  }
+  
+  .from-emerald-500\/30 {
+    --tw-gradient-from: rgb(16 185 129 / 0.3);
+    --tw-gradient-to: rgb(16 185 129 / 0);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  
+  .to-purple-500\/30 {
+    --tw-gradient-to: rgb(139 92 246 / 0.3);
+  }
+}
+
+.text-gradient-emerald-purple {
+  background: linear-gradient(to right, rgb(16, 185, 129), rgb(168, 85, 247));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gradient-emerald-purple {
+  background: linear-gradient(to right, rgb(16, 185, 129), rgb(168, 85, 247));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.text-gradient-emerald-purple {
+  background: linear-gradient(to right, rgb(16, 185, 129), rgb(168, 85, 247));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #1e293b;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #1e293b;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Enhanced custom scrollbar matching app theme */
+.scrollbar-custom {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16, 185, 129, 0.4) rgba(15, 23, 42, 0.8);
+}
+
+.scrollbar-custom::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.8);
+  border-radius: 4px;
+  border: 1px solid rgba(71, 85, 105, 0.3);
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, 
+    rgba(16, 185, 129, 0.6) 0%, 
+    rgba(168, 85, 247, 0.6) 100%
+  );
+  border-radius: 4px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  transition: all 0.3s ease;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, 
+    rgba(16, 185, 129, 0.8) 0%, 
+    rgba(168, 85, 247, 0.8) 100%
+  );
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 
+    0 0 8px rgba(16, 185, 129, 0.3),
+    0 0 16px rgba(168, 85, 247, 0.2);
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(135deg, 
+    rgba(16, 185, 129, 1) 0%, 
+    rgba(168, 85, 247, 1) 100%
+  );
+  box-shadow: 
+    0 0 12px rgba(16, 185, 129, 0.4),
+    0 0 24px rgba(168, 85, 247, 0.3);
+}
+
+/* Sidebar-specific scrollbar with enhanced theme integration */
+.scrollbar-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 #0f172a;
+}
+
+.scrollbar-sidebar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.scrollbar-sidebar::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, 
+    #0f172a 0%, 
+    #1e293b 100%
+  );
+  border-radius: 5px;
+  border: 1px solid rgba(71, 85, 105, 0.3);
+  margin: 4px 0;
+}
+
+.scrollbar-sidebar::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, 
+    #334155 0%, 
+    #475569 50%,
+    #334155 100%
+  );
+  border-radius: 5px;
+  border: 1px solid rgba(71, 85, 105, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.scrollbar-sidebar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, 
+    #475569 0%, 
+    #64748b 50%,
+    #475569 100%
+  );
+  border-color: rgba(100, 116, 139, 0.6);
+  box-shadow: 
+    0 0 8px rgba(71, 85, 105, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: scaleX(1.05);
+}
+
+.scrollbar-sidebar::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(135deg, 
+    #64748b 0%, 
+    #94a3b8 50%,
+    #64748b 100%
+  );
+  border-color: rgba(148, 163, 184, 0.8);
+  box-shadow: 
+    0 0 12px rgba(100, 116, 139, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  transform: scaleX(1.1);
+}
+
+/* Corner styling for better integration */
+.scrollbar-sidebar::-webkit-scrollbar-corner {
+  background: #0f172a;
+}
