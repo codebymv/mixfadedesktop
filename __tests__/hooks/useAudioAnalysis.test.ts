@@ -8,10 +8,6 @@ import type { AudioContextNodes } from '../../src/hooks/useAudioContext';
 const mockPerformanceNow = jest.fn();
 const originalPerformance = global.performance;
 
-// Mock console.log to avoid noise in tests
-const originalLog = console.log;
-console.log = jest.fn();
-
 describe('useAudioAnalysis Hook', () => {
   let mockGetNodes: jest.MockedFunction<() => AudioContextNodes>;
   let mockCallbacks: {
@@ -36,13 +32,12 @@ describe('useAudioAnalysis Hook', () => {
   });
 
   afterAll(() => {
-    // Restore original performance and console
+    // Restore original performance
     Object.defineProperty(global, 'performance', {
       value: originalPerformance,
       writable: true,
       configurable: true
     });
-    console.log = originalLog;
   });
 
   beforeEach(() => {

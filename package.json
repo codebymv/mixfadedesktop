@@ -1,7 +1,7 @@
 {
   "name": "mixfade",
   "private": true,
-  "version": "0.9.4",
+  "version": "0.9.5",
   "description": "MixFade - Professional DJ mixing application with seamless crossfading capabilities",
   "author": "MixFade Team",
   "type": "module",
