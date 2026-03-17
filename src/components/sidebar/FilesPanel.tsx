@@ -166,13 +166,19 @@ export function FilesPanel({
               const isUnassigned = file.lastUsedSide === null;
               const isActionMenuOpen = actionMenuFileId === file.id;
 
+              const hoverClass = isUnassigned
+                ? 'sidebar-item-unassigned'
+                : file.lastUsedSide === 'A'
+                ? 'sidebar-deck-button-a'
+                : 'sidebar-deck-button-b';
+
               return (
                 <div key={file.id} className="space-y-2">
                   <button
                     type="button"
                     onClick={() => handleRecentFileClick(file)}
                     aria-expanded={isUnassigned ? isActionMenuOpen : undefined}
-                    className="w-full flex items-start space-x-3 px-3 py-2 text-sm rounded-md cursor-pointer text-left sidebar-item group"
+                    className={`w-full flex items-start space-x-3 px-3 py-2 text-sm rounded-md cursor-pointer text-left group sidebar-deck-button ${hoverClass}`}
                     title={`Click to load ${file.name}${file.lastUsedSide ? ` to deck ${file.lastUsedSide}` : ''}`}
                   >
                     <Music size={16} className="mt-0.5 text-slate-400 group-hover:text-slate-300 shrink-0 sidebar-icon" />
