@@ -39,11 +39,12 @@ interface SidebarProps {
   // Visualizer seed
   visualizerSeed?: number;
   onRollVisualizerSeed?: () => void;
-  onResetVisualizerSeed?: () => void;
   savedVisualizerSeeds?: SavedSeed[];
   onSaveVisualizerSeed?: () => void;
   onLoadVisualizerSeed?: (seed: number) => void;
   onDeleteVisualizerSeed?: (id: string) => void;
+  onOpenVisualizerWindow?: () => void;
+  isVisualizerWindowOpen?: boolean;
 }
 
 export function Sidebar({
@@ -72,13 +73,14 @@ export function Sidebar({
   volumeA = 1,
   volumeB = 0,
   // Visualizer seed
-  visualizerSeed = 42,
+  visualizerSeed = 1337,
   onRollVisualizerSeed,
-  onResetVisualizerSeed,
   savedVisualizerSeeds = [],
   onSaveVisualizerSeed,
   onLoadVisualizerSeed,
   onDeleteVisualizerSeed,
+  onOpenVisualizerWindow,
+  isVisualizerWindowOpen = false,
 }: SidebarProps) {
   // Get current activity info
   const currentActivity = activities.find(activity => activity.id === activeActivity);
@@ -119,11 +121,12 @@ export function Sidebar({
           <VisualizerPanel
             seed={visualizerSeed}
             onRollSeed={onRollVisualizerSeed ?? (() => {})}
-            onResetSeed={onResetVisualizerSeed ?? (() => {})}
             savedSeeds={savedVisualizerSeeds}
             onSaveSeed={onSaveVisualizerSeed ?? (() => {})}
             onLoadSeed={onLoadVisualizerSeed ?? (() => {})}
             onDeleteSeed={onDeleteVisualizerSeed ?? (() => {})}
+            onOpenExternalWindow={onOpenVisualizerWindow}
+            isExternalWindowOpen={isVisualizerWindowOpen}
           />
         );
       case 'settings':
@@ -160,7 +163,7 @@ export function Sidebar({
         
         <button
           onClick={onToggle}
-          className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded transition-colors"
+          className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded transition-all duration-200 active:scale-[0.97]"
           title="Toggle Sidebar (Ctrl+B)"
           aria-label="Toggle Sidebar"
         >

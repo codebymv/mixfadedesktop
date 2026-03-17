@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   minimize: () => ipcRenderer.invoke('window:minimize'),
   maximize: () => ipcRenderer.invoke('window:maximize'),
   close: () => ipcRenderer.invoke('window:close'),
+  openVisualizerWindow: () => ipcRenderer.invoke('open-visualizer-window'),
   
   // Settings/preferences
   getSettings: () => ipcRenderer.invoke('settings:get'),

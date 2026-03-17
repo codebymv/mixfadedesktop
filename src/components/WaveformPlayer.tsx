@@ -27,7 +27,10 @@ interface WaveformPlayerProps {
   onDeckVolumeChange?: (volume: number) => void;
   isMuted?: boolean; // Hoisted persistent mute state
   onMuteChange?: (isMuted: boolean) => void;
+  isLooping?: boolean; // Hoisted persistent loop state
+  onLoopChange?: (isLooping: boolean) => void;
   isLinkedPlayback?: boolean; // True if A/B sync is on
+  isLinkPlaybackDisabled?: boolean;
   onTimeSeek?: (time: number) => void; // Emits to parent when scrubbed
   onToggleLinkedPlayback?: () => void; // Toggle Link Playback
 }
@@ -45,6 +48,8 @@ export interface WaveformPlayerRef {
   mute: () => void;
   unmute: () => void;
   isMuted: () => boolean;
+  setLoop: (looping: boolean) => void;
+  getLoop: () => boolean;
   getAudioNodes: () => AudioContextNodes;
 }
 
@@ -62,7 +67,10 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     onDeckVolumeChange,
     isMuted: externalIsMuted,
     onMuteChange,
+    isLooping: externalIsLooping,
+    onLoopChange,
     isLinkedPlayback,
+    isLinkPlaybackDisabled,
     onTimeSeek,
     onToggleLinkedPlayback
   },
@@ -95,7 +103,8 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
 
   const volume = deckVolume !== undefined ? deckVolume : internalVolume;
   const isMuted = externalIsMuted !== undefined ? externalIsMuted : internalIsMuted;
-  const [isLooping, setIsLooping] = useState(false);
+  const [internalIsLooping, setInternalIsLooping] = useState(false);
+  const isLooping = externalIsLooping !== undefined ? externalIsLooping : internalIsLooping;
 
   // Sync loop state to audio element
   useEffect(() => {
@@ -110,11 +119,11 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
 
     return {
       waveColor: deckTheme.base,
-      bgColor: color === 'green' ? 'bg-emerald-500' : 'bg-purple-500',
-      lightBgColor: color === 'green' ? 'bg-emerald-500/20' : 'bg-purple-500/20',
-      hoverColor: color === 'green' ? 'hover:bg-emerald-600' : 'hover:bg-purple-600',
-      textColor: color === 'green' ? 'text-emerald-400' : 'text-purple-400',
-      borderColor: color === 'green' ? 'border-emerald-500/50' : 'border-purple-500/50',
+      bgColor: color === 'green' ? 'bg-[var(--theme-deck-a-base)]' : 'bg-[var(--theme-deck-b-base)]',
+      lightBgColor: color === 'green' ? 'bg-[var(--theme-deck-a-base)]/20' : 'bg-[var(--theme-deck-b-base)]/20',
+      hoverColor: color === 'green' ? 'hover:bg-[var(--theme-deck-a-strong)]' : 'hover:bg-[var(--theme-deck-b-strong)]',
+      textColor: color === 'green' ? 'text-[var(--theme-deck-a-text)]' : 'text-[var(--theme-deck-b-text)]',
+      borderColor: color === 'green' ? 'border-[var(--theme-deck-a-base)]/50' : 'border-[var(--theme-deck-b-base)]/50',
       glowShadow: color === 'green' ? 'neon-glow-green' : 'neon-glow-purple'
     };
   }, [activeColorTheme, color]);
@@ -507,8 +516,13 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
       else setInternalIsMuted(false);
     },
     isMuted: () => isMuted,
+    setLoop: (looping: boolean) => {
+      if (onLoopChange) onLoopChange(looping);
+      else setInternalIsLooping(looping);
+    },
+    getLoop: () => isLooping,
     getAudioNodes: () => audioContext.getNodes()
-  }), [togglePlayPause, currentTime, duration, isPlaying, volume, isMuted, canPlay, onDeckVolumeChange, onMuteChange]);
+  }), [togglePlayPause, currentTime, duration, isPlaying, volume, isMuted, isLooping, canPlay, onDeckVolumeChange, onMuteChange, onLoopChange]);
   // Notify parent of play state changes
   useEffect(() => {
     if (onPlayStateChange) {
@@ -560,7 +574,7 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
           <h3 className={`text-lg font-semibold ${config.textColor} ${crossfadeVolume === 0 ? 'opacity-50' : ''} truncate flex-grow`} title={file.name}>
             {baseName}
           </h3>
-          <div className={`text-[10px] font-bold font-mono px-2 py-1 rounded border ${config.lightBgColor} ${config.textColor} ${config.borderColor} uppercase tracking-wider ml-auto`}>
+          <div className={`text-[10px] font-bold font-mono px-2 py-1 rounded bg-slate-950/40 ${config.textColor} uppercase tracking-wider ml-auto`}>
             {extension}
           </div>
         </div>
@@ -571,12 +585,13 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
           {onToggleLinkedPlayback && (
             <button
               onClick={onToggleLinkedPlayback}
-              className={`p-2 rounded-xl transition-all duration-200 border flex items-center justify-center flex-shrink-0 ${
+              disabled={isLinkPlaybackDisabled}
+              className={`p-2 rounded-xl transition-all duration-200 border flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${
                 isLinkedPlayback
                   ? `${config.lightBgColor} ${config.textColor} ${config.borderColor} ${config.glowShadow}`
                   : 'glass-panel text-audio-text-dim hover:text-white border-transparent hover:border-slate-600'
               }`}
-              title={isLinkedPlayback ? "Unlink Decks" : "Link Deck Playback"}
+              title={isLinkPlaybackDisabled ? 'Load tracks on both decks to link playback' : (isLinkedPlayback ? 'Unlink Decks' : 'Link Deck Playback')}
               style={{ outline: 'none', outlineWidth: 0 }}
             >
               <LinkIcon size={16} className={isLinkedPlayback ? "" : "opacity-50"} />
@@ -585,7 +600,10 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
 
           {/* Loop button */}
           <button
-            onClick={() => setIsLooping(l => !l)}
+            onClick={() => {
+              if (onLoopChange) onLoopChange(!isLooping);
+              else setInternalIsLooping(l => !l);
+            }}
             className={`p-2 rounded-xl transition-all duration-200 border flex items-center justify-center flex-shrink-0 ${
               isLooping
                 ? `${config.lightBgColor} ${config.textColor} ${config.borderColor} ${config.glowShadow}`

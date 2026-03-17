@@ -102,10 +102,10 @@ export function SettingsPanel() {
                 key={themeOption.id}
                 type="button"
                 onClick={() => updateSetting('ui', 'colorThemeId', themeOption.id)}
-                className={`w-full rounded-xl border px-3 py-3 text-left transition-all duration-200 ${
+                className={`w-full rounded-xl border px-3 py-3 text-left ${
                   isActive
                     ? 'theme-selected-card neon-glow-fusion'
-                    : 'glass-panel border-slate-700/80 hover:bg-slate-800/80'
+                    : 'sidebar-theme-button'
                 }`}
                 style={isActive ? { borderColor: withAlpha(themeOption.deckA.base, 0.55) } : undefined}
               >
@@ -181,7 +181,7 @@ export function SettingsPanel() {
                 aria-haspopup="listbox"
                 aria-expanded={isCrossfadeCurveMenuOpen}
                 onClick={() => setIsCrossfadeCurveMenuOpen((open) => !open)}
-                className="flex w-full items-center justify-between rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 transition-colors hover:bg-slate-800/90 focus:outline-none theme-focus-input"
+                className="flex w-full items-center justify-between rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 transition-all duration-200 hover:bg-slate-800/90 focus:outline-none theme-focus-input active:scale-[0.97]"
               >
                 <span className="flex items-center gap-2.5">
                   <CrossfadeCurveIcon curve={selectedCrossfadeCurve.id} />

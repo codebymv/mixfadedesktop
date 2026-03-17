@@ -55,7 +55,7 @@ export function AnalysisTabs({
                 aria-label={`${label} ${tab.label}`}
                 className={`w-full min-w-0 rounded-xl border transition-all flex items-center justify-center gap-2 px-3 py-2 ${
                   activeTab === tab.id
-                    ? 'border-slate-500/60 bg-gradient-to-r from-emerald-500 to-purple-500 text-white neon-glow-fusion'
+                    ? 'border-slate-500/60 bg-theme-fusion text-white neon-glow-fusion'
                     : 'border-transparent text-slate-300 hover:text-white hover:bg-slate-800/50'
                 }`}
               >

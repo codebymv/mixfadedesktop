@@ -66,13 +66,13 @@ export function FileUpload({ label, color, file, onFileSelect }: FileUploadProps
   };
 
   const colorClasses = {
-    green: 'border-emerald-500/50 bg-emerald-500/10',
-    purple: 'border-purple-500/50 bg-purple-500/10'
+    green: 'border-[var(--theme-deck-a-base)]/50 bg-[var(--theme-deck-a-base)]/10',
+    purple: 'border-[var(--theme-deck-b-base)]/50 bg-[var(--theme-deck-b-base)]/10'
   };
 
   const iconBgColor = {
-    green: 'bg-emerald-500',
-    purple: 'bg-purple-500'
+    green: 'bg-[var(--theme-deck-a-base)]',
+    purple: 'bg-[var(--theme-deck-b-base)]'
   };
 
   const glowClasses = {
@@ -117,7 +117,7 @@ export function FileUpload({ label, color, file, onFileSelect }: FileUploadProps
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleLoadClick}
-                  className="p-2 glass-panel rounded-xl hover:bg-gradient-to-br hover:from-emerald-500/20 hover:to-purple-500/20 transition-all duration-200 text-audio-text-dim hover:text-white border border-slate-600 hover:border-transparent"
+                  className="p-2 glass-panel rounded-xl hover:bg-theme-fusion hover:bg-opacity-20 transition-all duration-200 text-audio-text-dim hover:text-white border border-slate-600 hover:border-transparent"
                   title="Load new file"
                   style={{ outline: 'none', outlineWidth: 0 }}
                 >
@@ -125,7 +125,7 @@ export function FileUpload({ label, color, file, onFileSelect }: FileUploadProps
                 </button>
                 <button
                   onClick={() => onFileSelect(null)}
-                  className="p-2 glass-panel rounded-xl hover:bg-gradient-to-br hover:from-emerald-500/20 hover:to-purple-500/20 transition-all duration-200 text-audio-text-dim hover:text-white border border-slate-600 hover:border-transparent"
+                  className="p-2 glass-panel rounded-xl hover:bg-theme-fusion hover:bg-opacity-20 transition-all duration-200 text-audio-text-dim hover:text-white border border-slate-600 hover:border-transparent"
                   title="Clear track"
                   style={{ outline: 'none', outlineWidth: 0 }}
                 >
@@ -143,7 +143,7 @@ export function FileUpload({ label, color, file, onFileSelect }: FileUploadProps
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => onFileSelect(null)}
-                  className="p-2 glass-panel rounded-xl hover:bg-gradient-to-br hover:from-emerald-500/20 hover:to-purple-500/20 transition-all duration-200 text-audio-text-dim hover:text-white border border-slate-600 hover:border-transparent"
+                  className="p-2 glass-panel rounded-xl hover:bg-theme-fusion hover:bg-opacity-20 transition-all duration-200 text-audio-text-dim hover:text-white border border-slate-600 hover:border-transparent"
                   title="Clear track"
                   style={{ outline: 'none', outlineWidth: 0 }}
                 >
@@ -151,7 +151,7 @@ export function FileUpload({ label, color, file, onFileSelect }: FileUploadProps
                 </button>
                 <button
                   onClick={handleLoadClick}
-                  className="p-2 glass-panel rounded-xl hover:bg-gradient-to-br hover:from-emerald-500/20 hover:to-purple-500/20 transition-all duration-200 text-audio-text-dim hover:text-white border border-slate-600 hover:border-transparent"
+                  className="p-2 glass-panel rounded-xl hover:bg-theme-fusion hover:bg-opacity-20 transition-all duration-200 text-audio-text-dim hover:text-white border border-slate-600 hover:border-transparent"
                   title="Load new file"
                   style={{ outline: 'none', outlineWidth: 0 }}
                 >
@@ -176,12 +176,12 @@ export function FileUpload({ label, color, file, onFileSelect }: FileUploadProps
         <div className={`relative glass-panel p-4 rounded-3xl border-2 transition-all duration-300 overflow-hidden ${
           isDraggingOver 
             ? color === 'green'
-              ? 'border-emerald-400/70 bg-gradient-to-br from-emerald-500/20 via-teal-400/15 to-purple-500/20 shadow-[0_0_32px_rgba(16,185,129,0.3)]'
-              : 'border-purple-400/70 bg-gradient-to-br from-purple-500/20 via-fuchsia-400/15 to-emerald-500/20 shadow-[0_0_32px_rgba(168,85,247,0.3)]'
+              ? 'border-[var(--theme-deck-a-base)] bg-[var(--theme-deck-a-base)]/20 shadow-[0_0_32px_rgb(var(--theme-deck-a-base-rgb)/0.3)]'
+              : 'border-[var(--theme-deck-b-base)] bg-[var(--theme-deck-b-base)]/20 shadow-[0_0_32px_rgb(var(--theme-deck-b-base-rgb)/0.3)]'
             : `${colorClasses[color]} border-slate-600`
         }`}>
           <div className={`flex items-center gap-4 ${isAudioB ? 'flex-row-reverse' : ''}`}>
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-emerald-500 to-purple-500 shadow-lg">
+            <div className="p-3 rounded-2xl bg-theme-fusion shadow-lg">
               <Music className="text-white" size={24} />
             </div>
             <div className={`flex-1 min-w-0 ${isAudioB ? 'text-right' : ''}`}>
@@ -191,8 +191,8 @@ export function FileUpload({ label, color, file, onFileSelect }: FileUploadProps
               <div className={`flex items-center gap-4 mt-1 ${isAudioB ? 'justify-end' : ''}`}>
                 <p className="text-audio-text-dim text-sm font-mono">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                 <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-gradient-to-r from-emerald-400 to-purple-400 rounded-full animate-pulse"></div>
-                  <span className="text-emerald-400 text-sm font-medium">Ready</span>
+                  <div className="w-2 h-2 bg-theme-fusion rounded-full animate-pulse"></div>
+                  <span className="text-[var(--theme-deck-a-text)] text-sm font-medium">Ready</span>
                 </div>
               </div>
             </div>
@@ -208,15 +208,15 @@ export function FileUpload({ label, color, file, onFileSelect }: FileUploadProps
           className={`glass-panel py-4 px-12 rounded-3xl border-2 border-dashed transition-all duration-300 cursor-pointer ${
             isDraggingOver
               ? color === 'green'
-                ? 'border-emerald-400/70 bg-gradient-to-br from-emerald-500/20 via-teal-400/15 to-purple-500/20 shadow-[0_0_32px_rgba(16,185,129,0.3)]'
-                : 'border-purple-400/70 bg-gradient-to-br from-purple-500/20 via-fuchsia-400/15 to-emerald-500/20 shadow-[0_0_32px_rgba(168,85,247,0.3)]'
+                ? 'border-[var(--theme-deck-a-base)] bg-[var(--theme-deck-a-base)]/20 shadow-[0_0_32px_rgb(var(--theme-deck-a-base-rgb)/0.3)]'
+                : 'border-[var(--theme-deck-b-base)] bg-[var(--theme-deck-b-base)]/20 shadow-[0_0_32px_rgb(var(--theme-deck-b-base-rgb)/0.3)]'
               : `${colorClasses[color]} border-slate-600`
           }`}
           style={{ outline: 'none', outlineWidth: 0 }}
           onClick={handleLoadClick}
         >
           <div className="text-center">
-            <div className="mx-auto mb-2 p-4 rounded-3xl bg-gradient-to-br from-emerald-500/20 via-teal-500/20 to-purple-500/20 border border-slate-600">
+            <div className="mx-auto mb-2 p-4 rounded-3xl bg-theme-fusion bg-opacity-20 border border-slate-600">
               <Upload className="mx-auto text-white" size={32} />
             </div>
             <p className="text-white font-semibold text-lg mb-2">Drag file here</p>

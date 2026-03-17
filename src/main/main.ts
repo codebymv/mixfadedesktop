@@ -2,6 +2,8 @@ import { app, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain, nativeIm
 import * as path from 'path';
 import * as fs from 'fs';
 
+let visualizerWindow: BrowserWindow | null = null;
+
 const isDev = process.argv.includes('--dev');
 
 let mainWindow: BrowserWindow | null = null;
@@ -171,9 +173,25 @@ app.whenReady().then(() => {
 // Set up IPC handlers for window controls
 function setupIPC() {
   // Window control handlers
+  ipcMain.handle('window:minimize', () => {
+    if (mainWindow) {
+      mainWindow.minimize();
+    }
+  });
+
   ipcMain.on('window-minimize', () => {
     if (mainWindow) {
       mainWindow.minimize();
+    }
+  });
+
+  ipcMain.handle('window:maximize', () => {
+    if (mainWindow) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.maximize();
+      }
     }
   });
 
@@ -187,10 +205,66 @@ function setupIPC() {
     }
   });
 
+  ipcMain.handle('window:close', () => {
+    if (mainWindow) {
+      mainWindow.close();
+    }
+  });
+
   ipcMain.on('window-close', () => {
     if (mainWindow) {
       mainWindow.close();
     }
+  });
+
+  // External visualizer window
+  ipcMain.handle('open-visualizer-window', () => {
+    if (visualizerWindow && !visualizerWindow.isDestroyed()) {
+      visualizerWindow.focus();
+      return;
+    }
+
+    const iconPath = isDev
+      ? path.join(__dirname, '..', '..', 'public', 'mixfade_icon.png')
+      : path.join(process.resourcesPath, 'mixfade_icon.png');
+
+    visualizerWindow = new BrowserWindow({
+      width: 1280,
+      height: 720,
+      minWidth: 640,
+      minHeight: 360,
+      icon: iconPath,
+      title: 'MixFade Visualizer',
+      backgroundColor: '#000000',
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+        preload: isDev
+          ? path.join(__dirname, '..', '..', 'public', 'preload.js')
+          : path.join(__dirname, 'preload.js'),
+        sandbox: true,
+        webSecurity: true,
+        devTools: isDev,
+      },
+      show: false,
+      autoHideMenuBar: true,
+    });
+
+    const baseUrl = isDev
+      ? 'http://localhost:5173/'
+      : `file://${path.join(__dirname, '..', '..', 'dist-renderer', 'index.html')}`;
+
+    visualizerWindow.loadURL(`${baseUrl}?visualizer=1`).catch((err: unknown) => {
+      console.error('Failed to load visualizer window URL:', err);
+    });
+
+    visualizerWindow.once('ready-to-show', () => {
+      visualizerWindow?.show();
+    });
+
+    visualizerWindow.on('closed', () => {
+      visualizerWindow = null;
+    });
   });
 }
 

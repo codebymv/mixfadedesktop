@@ -134,16 +134,16 @@ export function FilesPanel({
         <div className="space-y-1">
           <button
             onClick={handleLoadToA}
-            className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-white hover:bg-slate-800 rounded-md transition-colors"
+            className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-white sidebar-deck-button sidebar-deck-button-a group"
           >
-            <Upload size={16} className="text-emerald-500" />
+            <Upload size={16} className="text-[var(--theme-deck-a-base)] sidebar-icon" />
             <span>Load to Deck A</span>
           </button>
           <button
             onClick={handleLoadToB}
-            className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-white hover:bg-slate-800 rounded-md transition-colors"
+            className="w-full flex items-center space-x-3 px-3 py-2 text-sm text-white sidebar-deck-button sidebar-deck-button-b group"
           >
-            <Upload size={16} className="text-purple-500" />
+            <Upload size={16} className="text-[var(--theme-deck-b-base)] sidebar-icon" />
             <span>Load to Deck B</span>
           </button>
         </div>
@@ -172,17 +172,17 @@ export function FilesPanel({
                     type="button"
                     onClick={() => handleRecentFileClick(file)}
                     aria-expanded={isUnassigned ? isActionMenuOpen : undefined}
-                    className="w-full flex items-start space-x-3 px-3 py-2 text-sm rounded-md cursor-pointer transition-all text-left group hover:bg-slate-800"
+                    className="w-full flex items-start space-x-3 px-3 py-2 text-sm rounded-md cursor-pointer text-left sidebar-item group"
                     title={`Click to load ${file.name}${file.lastUsedSide ? ` to deck ${file.lastUsedSide}` : ''}`}
                   >
-                    <Music size={16} className="mt-0.5 text-slate-400 group-hover:text-slate-300 shrink-0" />
+                    <Music size={16} className="mt-0.5 text-slate-400 group-hover:text-slate-300 shrink-0 sidebar-icon" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-slate-300 truncate">{file.name}</p>
                         {file.lastUsedSide && (
                           <span className={`text-xs px-1.5 py-0.5 rounded shrink-0 font-bold ${file.lastUsedSide === 'A'
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : 'bg-purple-500/20 text-purple-400'
+                              ? 'bg-[var(--theme-deck-a-base)]/20 text-[var(--theme-deck-a-text)]'
+                              : 'bg-[var(--theme-deck-b-base)]/20 text-[var(--theme-deck-b-text)]'
                             }`}>
                             {file.lastUsedSide}
                           </span>
@@ -198,7 +198,7 @@ export function FilesPanel({
                         type="button"
                         onClick={() => handleAssignDroppedFile(file, 'A')}
                         aria-label={`Load ${file.name} to deck A`}
-                        className="px-3 py-2 rounded-md bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/25 transition-colors"
+                        className="px-3 py-2 rounded-md bg-[var(--theme-deck-a-base)]/15 text-[var(--theme-deck-a-text)] border border-[var(--theme-deck-a-base)]/30 hover:bg-[var(--theme-deck-a-base)]/25 transition-all duration-200 active:scale-[0.97]"
                       >
                         Load Deck A
                       </button>
@@ -206,7 +206,7 @@ export function FilesPanel({
                         type="button"
                         onClick={() => handleAssignDroppedFile(file, 'B')}
                         aria-label={`Load ${file.name} to deck B`}
-                        className="px-3 py-2 rounded-md bg-purple-500/15 text-purple-300 border border-purple-500/30 hover:bg-purple-500/25 transition-colors"
+                        className="px-3 py-2 rounded-md bg-[var(--theme-deck-b-base)]/15 text-[var(--theme-deck-b-text)] border border-[var(--theme-deck-b-base)]/30 hover:bg-[var(--theme-deck-b-base)]/25 transition-all duration-200 active:scale-[0.97]"
                       >
                         Load Deck B
                       </button>
@@ -229,13 +229,13 @@ export function FilesPanel({
         className={[
           'flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-4 py-5 text-center transition-all duration-200',
           isDragActive
-            ? 'border-emerald-400/70 bg-gradient-to-br from-emerald-500/15 via-teal-400/10 to-purple-500/15 shadow-[0_0_24px_rgba(16,185,129,0.25)]'
+            ? 'border-[var(--theme-deck-a-base)]/70 bg-theme-fusion bg-opacity-15 shadow-[0_0_24px_rgb(var(--theme-deck-a-base-rgb)/0.25)]'
             : 'border-white/10 bg-white/[0.03] hover:border-white/20',
         ].join(' ')}
       >
         <Upload
           size={18}
-          className={isDragActive ? 'text-emerald-300' : 'text-white/30'}
+          className={isDragActive ? 'text-[var(--theme-deck-a-text)]' : 'text-white/30'}
         />
         <p className={`text-xs ${isDragActive ? 'text-white font-medium' : 'text-white/40'}`}>
           {isDragActive ? 'Release to stage files' : 'Drag files here'}

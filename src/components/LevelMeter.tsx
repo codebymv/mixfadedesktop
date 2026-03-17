@@ -166,9 +166,9 @@ export function LevelMeter({
     if (db > 0) return 'bg-red-500'; // Above 0dBFS - digital clipping
     if (db > -3) return 'bg-gradient-to-r from-orange-500 to-red-500'; // Hot zone
     if (db > -6) return 'bg-gradient-to-r from-yellow-500 to-orange-500'; // Loud zone
-    if (db > -12) return 'bg-gradient-to-r from-emerald-500 to-yellow-500'; // Good zone
-    if (db > -18) return 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500'; // Safe zone
-    return 'bg-gradient-to-r from-blue-500 to-emerald-500'; // Low level
+    if (db > -12) return 'bg-gradient-to-r from-[var(--theme-deck-a-base)] to-yellow-500'; // Good zone
+    if (db > -18) return 'bg-[var(--theme-deck-a-base)]'; // Safe zone
+    return 'bg-gradient-to-r from-blue-500 to-[var(--theme-deck-a-base)]'; // Low level
   };
 
   // Get true peak color (more sensitive to overs)
@@ -360,7 +360,7 @@ export function LevelMeter({
               <div className={`mt-1 flex items-center gap-1.5 font-mono font-bold tabular-nums whitespace-nowrap ${mixToneClass}`}>
                 <div className={`w-2 h-2 rounded-full ${
                 crossfadeVolume === 0 ? 'bg-red-500' :
-                isPlaying ? 'bg-green-500 animate-pulse' : 'bg-slate-500'
+                isPlaying ? 'bg-[var(--theme-deck-a-base)] animate-pulse' : 'bg-slate-500'
               }`}></div>
                 <span>{transportLabel}</span>
               </div>

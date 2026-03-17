@@ -22,7 +22,7 @@ export const VolumeControls: React.FC<VolumeControlsProps> = ({
     <div className="flex items-center gap-2 w-full">
       <button
         onClick={onToggleMute}
-        className="p-2 glass-panel rounded-xl hover:bg-gradient-to-br hover:from-emerald-500/20 hover:to-purple-500/20 transition-all duration-200 text-audio-text-dim hover:text-white border border-slate-600 hover:border-transparent flex-shrink-0"
+        className="p-2 glass-panel rounded-xl hover:bg-gradient-to-br hover:from-[var(--theme-deck-a-base)]/20 hover:to-[var(--theme-deck-b-base)]/20 transition-all duration-200 text-audio-text-dim hover:text-white border border-slate-600 hover:border-transparent flex-shrink-0"
       >
         {isMuted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
       </button>

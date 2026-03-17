@@ -8,6 +8,7 @@ import { AudioLevels, StereoAnalysis } from './utils/audioAnalysis';
 import { ActivityBar } from './components/ActivityBar';
 import { Sidebar } from './components/Sidebar';
 import { VisualizerMode, DEFAULT_VIS_SEED, getPresetEntryForSeed } from './components/VisualizerMode';
+import type { VisualizerBroadcastMessage } from './components/ExternalVisualizerWindow';
 import type { SavedSeed } from './components/sidebar/VisualizerPanel';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useApplyColorTheme } from './hooks/useColorTheme';
@@ -81,13 +82,15 @@ function App() {
   // Refs for controlling waveform players
   const waveformPlayerARef = useRef<WaveformPlayerRef>(null);
   const waveformPlayerBRef = useRef<WaveformPlayerRef>(null);
+  const openExternalVisualizerWindowRef = useRef<(() => void) | null>(null);
+  const lastNonVisualizerActivityRef = useRef<ActivityId>('files');
 
   // Navigation state
   const [activeActivity, setActiveActivity] = useState<ActivityId>('files');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isVisualizerWindowOpen, setIsVisualizerWindowOpen] = useState(false);
   const [visualizerSeed, setVisualizerSeed] = useState(DEFAULT_VIS_SEED);
   const rollVisualizerSeed = useCallback(() => setVisualizerSeed((Math.random() * 0xFFFFFFFF) >>> 0), []);
-  const resetVisualizerSeed = useCallback(() => setVisualizerSeed(DEFAULT_VIS_SEED), []);
 
   // Saved seeds — persisted to localStorage
   const SAVED_SEEDS_KEY = 'mixfade-vis-seeds';
@@ -116,21 +119,110 @@ function App() {
   const deleteVisualizerSeed = useCallback((id: string) => {
     setSavedVisualizerSeeds(prev => prev.filter(s => s.id !== id));
   }, []);
+  const handleExternalVisualizerReady = useCallback((openExternalWindow: (() => void) | null) => {
+    openExternalVisualizerWindowRef.current = openExternalWindow;
+  }, []);
+  const handleExternalVisualizerWindowStateChange = useCallback((isOpen: boolean) => {
+    setIsVisualizerWindowOpen(isOpen);
+    if (isOpen && activeActivity === 'visualizer') {
+      setActiveActivity(lastNonVisualizerActivityRef.current);
+    }
+  }, [activeActivity]);
   const visualizerAudioNodesA = waveformPlayerARef.current?.getAudioNodes() ?? null;
   const visualizerAudioNodesB = waveformPlayerBRef.current?.getAudioNodes() ?? null;
   const visualizerMixA = deckAMuted ? 0 : deckAVolume * volumeA;
   const visualizerMixB = deckBMuted ? 0 : deckBVolume * volumeB;
 
+  // Hoisted loop state for each deck
+  const [deckALooping, setDeckALooping] = useState(false);
+  const [deckBLooping, setDeckBLooping] = useState(false);
+  const toggleVisualizerLoop = useCallback(() => {
+    // Toggle the loop of whichever deck is dominant (mirrors VisualizerMode's sourceInput logic)
+    const aPlaying = isTrackAPlaying && Boolean(trackA);
+    const bPlaying = isTrackBPlaying && Boolean(trackB);
+    const dominant =
+      aPlaying && bPlaying ? (visualizerMixA >= visualizerMixB ? 'A' : 'B') :
+      aPlaying ? 'A' :
+      bPlaying ? 'B' :
+      trackA ? 'A' : 'B';
+    if (dominant === 'A') setDeckALooping(l => !l);
+    else setDeckBLooping(l => !l);
+  }, [isTrackAPlaying, isTrackBPlaying, trackA, trackB, visualizerMixA, visualizerMixB]);
+
+  // BroadcastChannel sender — pushes visualizer state to any external visualizer windows
+  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
+  useEffect(() => {
+    broadcastChannelRef.current = new BroadcastChannel('mixfade-visualizer');
+    return () => {
+      broadcastChannelRef.current?.close();
+      broadcastChannelRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    let raf = 0;
+    const send = () => {
+      raf = requestAnimationFrame(send);
+      const ch = broadcastChannelRef.current;
+      if (!ch) return;
+
+      // Pick the dominant analyser node
+      const aPlaying = isTrackAPlaying && Boolean(trackA);
+      const bPlaying = isTrackBPlaying && Boolean(trackB);
+      const dominant =
+        aPlaying && bPlaying ? (visualizerMixA >= visualizerMixB ? 'A' : 'B') :
+        aPlaying ? 'A' :
+        bPlaying ? 'B' :
+        trackA ? 'A' : 'B';
+      const nodes = dominant === 'A' ? visualizerAudioNodesA : visualizerAudioNodesB;
+      const analyser = nodes?.analyserNode ?? null;
+
+      const fftSize = analyser?.frequencyBinCount ?? 1024;
+      const freqArr = new Uint8Array(fftSize);
+      const timeArr = new Uint8Array(fftSize);
+      if (analyser) {
+        analyser.getByteFrequencyData(freqArr);
+        analyser.getByteTimeDomainData(timeArr);
+      }
+
+      const bothAudible = visualizerMixA > 0.01 && visualizerMixB > 0.01;
+      const deckLabel = bothAudible ? 'Deck A · Deck B' : dominant ? `Deck ${dominant}` : '';
+      const nameA = trackA?.name?.replace(/\.[^.]+$/, '') ?? '';
+      const nameB = trackB?.name?.replace(/\.[^.]+$/, '') ?? '';
+      const trackLabel =
+        aPlaying && bPlaying ? [nameA, nameB].filter(Boolean).join('  ◆  ') :
+        aPlaying ? nameA :
+        bPlaying ? nameB :
+        nameA || nameB || '';
+
+      const [presetRawName] = getPresetEntryForSeed(visualizerSeed);
+      const idx = presetRawName.lastIndexOf(' - ');
+      const presetName = (idx !== -1 ? presetRawName.slice(idx + 3).trim() : presetRawName)
+        .replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+      const msg: VisualizerBroadcastMessage = {
+        type: 'visualizer-state',
+        seed: visualizerSeed,
+        isPlaying: aPlaying || bPlaying,
+        trackLabel,
+        deckLabel,
+        presetName,
+        frequencyData: Array.from(freqArr),
+        timeDomainData: Array.from(timeArr),
+      };
+      ch.postMessage(msg);
+    };
+    raf = requestAnimationFrame(send);
+    return () => cancelAnimationFrame(raf);
+  }, [isTrackAPlaying, isTrackBPlaying, trackA, trackB, visualizerMixA, visualizerMixB, visualizerAudioNodesA, visualizerAudioNodesB, visualizerSeed]);
+
   const handleActivityChange = useCallback((activityId: string) => {
-    setActiveActivity(activityId as ActivityId);
-    // Auto-collapse sidebar when switching to visualizer
-    if (activityId === 'visualizer') {
-      setSidebarCollapsed(true);
-    } else if (sidebarCollapsed) {
-      // Auto-open sidebar when switching away from visualizer
-      setSidebarCollapsed(false);
+    const nextActivity = activityId as ActivityId;
+    setActiveActivity(nextActivity);
+    if (nextActivity !== 'visualizer') {
+      lastNonVisualizerActivityRef.current = nextActivity;
     }
-  }, [sidebarCollapsed]);
+  }, []);
 
   const handleSidebarToggle = useCallback(() => {
     setSidebarCollapsed(prev => !prev);
@@ -139,6 +231,7 @@ function App() {
 
   const hasAnyAudio = trackA || trackB;
   const hasBothAudio = trackA && trackB;
+  const isLinkPlaybackDisabled = !hasBothAudio;
 
   // Stereo data handlers that also capture L/R samples for vectorscope
   const handleTrackAStereoData = useCallback((data: StereoAnalysis, leftSamples?: Float32Array, rightSamples?: Float32Array) => {
@@ -516,11 +609,12 @@ function App() {
         // Visualizer seed
         visualizerSeed={visualizerSeed}
         onRollVisualizerSeed={rollVisualizerSeed}
-        onResetVisualizerSeed={resetVisualizerSeed}
         savedVisualizerSeeds={savedVisualizerSeeds}
         onSaveVisualizerSeed={saveVisualizerSeed}
         onLoadVisualizerSeed={loadVisualizerSeed}
         onDeleteVisualizerSeed={deleteVisualizerSeed}
+        onOpenVisualizerWindow={() => openExternalVisualizerWindowRef.current?.()}
+        isVisualizerWindowOpen={isVisualizerWindowOpen}
       />
 
       {/* Main Content Area */}
@@ -616,7 +710,10 @@ function App() {
                         onDeckVolumeChange={setDeckAVolume}
                         isMuted={deckAMuted}
                         onMuteChange={setDeckAMuted}
+                        isLooping={deckALooping}
+                        onLoopChange={setDeckALooping}
                         isLinkedPlayback={isLinkedPlayback}
+                        isLinkPlaybackDisabled={isLinkPlaybackDisabled}
                         onTimeSeek={handleDeckATimeSeek}
                         onToggleLinkedPlayback={() => setIsLinkedPlayback(!isLinkedPlayback)}
                       />
@@ -641,7 +738,10 @@ function App() {
                         onDeckVolumeChange={setDeckBVolume}
                         isMuted={deckBMuted}
                         onMuteChange={setDeckBMuted}
+                        isLooping={deckBLooping}
+                        onLoopChange={setDeckBLooping}
                         isLinkedPlayback={isLinkedPlayback}
+                        isLinkPlaybackDisabled={isLinkPlaybackDisabled}
                         onTimeSeek={handleDeckBTimeSeek}
                         onToggleLinkedPlayback={() => setIsLinkedPlayback(!isLinkedPlayback)}
                       />
@@ -696,11 +796,11 @@ function App() {
         {/* Visualizer Overlay */}
         <div
           className={`absolute inset-0 transition-opacity duration-150 ${
-            activeActivity === 'visualizer'
+            activeActivity === 'visualizer' && !isVisualizerWindowOpen
               ? 'z-50 opacity-100 pointer-events-auto'
               : 'z-0 opacity-0 pointer-events-none'
           }`}
-          aria-hidden={activeActivity !== 'visualizer'}
+          aria-hidden={activeActivity !== 'visualizer' || isVisualizerWindowOpen}
         >
           <VisualizerMode
             trackAFile={trackA}
@@ -712,8 +812,17 @@ function App() {
             volumeA={visualizerMixA}
             volumeB={visualizerMixB}
             isTransitioning={isTransitioning}
-            isActive={activeActivity === 'visualizer'}
+            isActive={activeActivity === 'visualizer' && !isVisualizerWindowOpen}
             seed={visualizerSeed}
+            onPlayPause={handlePlayPause}
+            isLoopingA={deckALooping}
+            isLoopingB={deckBLooping}
+            onToggleLoop={toggleVisualizerLoop}
+            onRollSeed={rollVisualizerSeed}
+            onSaveSeed={saveVisualizerSeed}
+            isSeedSaved={savedVisualizerSeeds.some(s => s.seed === visualizerSeed)}
+            onExternalWindowReady={handleExternalVisualizerReady}
+            onExternalWindowStateChange={handleExternalVisualizerWindowStateChange}
           />
         </div>
       </div>

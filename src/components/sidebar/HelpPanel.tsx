@@ -66,8 +66,8 @@ export function HelpPanel() {
       <div className="p-4 space-y-6">
         <div className="text-center">
           <div className="flex items-center justify-center mb-3">
-            <CheckCircle className="mr-2 h-6 w-6 text-emerald-400" />
-            <h3 className="text-lg font-bold text-emerald-400">
+            <CheckCircle className="mr-2 h-6 w-6 text-[var(--theme-deck-a-text)]" />
+            <h3 className="text-lg font-bold text-[var(--theme-deck-a-text)]">
               Thank You!
             </h3>
           </div>
@@ -76,7 +76,7 @@ export function HelpPanel() {
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-purple-500 hover:from-emerald-600 hover:to-purple-600 text-white text-sm font-semibold rounded-md transition-all duration-200 neon-glow-fusion"
+            className="px-4 py-2 bg-theme-fusion hover:bg-theme-fusion-hover text-white text-sm font-semibold rounded-md transition-all duration-200 neon-glow-fusion active:scale-[0.97]"
           >
             Submit Another Report
           </button>
@@ -90,7 +90,7 @@ export function HelpPanel() {
       {/* Bug Report Form */}
       <div className="space-y-2">
         <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Bug Report</h3>
-        <div className="glass-panel rounded-xl p-4 border border-slate-700/50 neon-glow-fusion">
+        <div className="rounded-xl theme-fusion-outline neon-glow-fusion p-4">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 gap-4">
               <div className="space-y-2">
@@ -138,7 +138,7 @@ export function HelpPanel() {
                   name="subject"
                   value={formData.subject}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-md text-white placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none transition-colors"
+                  className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-md text-white placeholder:text-slate-400 focus:border-[var(--theme-deck-a-base)] focus:outline-none transition-colors"
                   placeholder="Brief description of the issue"
                   required
                 />
@@ -157,7 +157,7 @@ export function HelpPanel() {
                   value={formData.description}
                   onChange={handleInputChange}
                   rows={4}
-                  className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-md text-white placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none transition-colors resize-none"
+                  className="w-full px-3 py-2 text-sm bg-slate-800 border border-slate-600 rounded-md text-white placeholder:text-slate-400 focus:border-[var(--theme-deck-a-base)] focus:outline-none transition-colors resize-none"
                   placeholder="Describe the bug or issue you encountered..."
                   required
                 />
@@ -182,7 +182,7 @@ export function HelpPanel() {
             <button
               type="submit"
               disabled={state.submitting}
-              className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-emerald-500 to-purple-500 hover:from-emerald-600 hover:to-purple-600 text-white text-sm font-semibold rounded-md transition-all duration-200 neon-glow-fusion disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-theme-fusion hover:bg-theme-fusion-hover text-white text-sm font-semibold rounded-md transition-all duration-200 neon-glow-fusion disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.97]"
             >
               <Send size={16} />
               <span>{state.submitting ? "Submitting..." : "Submit Bug Report"}</span>

@@ -36,8 +36,8 @@ export function ABSwitch({
           onClick={() => onSwitch('A')}
           className={`flex-grow h-12 rounded-2xl border-2 transition-all duration-300 flex items-center justify-center text-lg font-bold relative overflow-hidden ${
             dominantTrack === 'A' && !isTransitioning
-              ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 border-emerald-400 text-white neon-glow-fusion scale-110 shadow-lg'
-              : 'glass-panel border-slate-600 text-audio-text-dim hover:border-emerald-500 hover:text-white hover:scale-105 hover:bg-gradient-to-br hover:from-emerald-500/10 hover:to-purple-500/10'
+              ? 'bg-gradient-to-br from-[var(--theme-deck-a-base)] to-[var(--theme-deck-a-strong)] border-[var(--theme-deck-a-text)] text-white neon-glow-fusion scale-110 shadow-lg'
+              : 'glass-panel border-slate-600 text-audio-text-dim hover:border-[var(--theme-deck-a-base)] hover:text-white hover:scale-105 hover:bg-gradient-to-br hover:from-[var(--theme-deck-a-base)]/10 hover:to-[var(--theme-deck-b-base)]/10'
           }`}
           style={{ outline: 'none', outlineWidth: 0 }}
           disabled={isTransitioning}
@@ -46,7 +46,7 @@ export function ABSwitch({
           {/* Volume indicator overlay */}
           {isTransitioning && (
             <div 
-              className="absolute bottom-0 left-0 bg-emerald-500/30 transition-all duration-100"
+              className="absolute bottom-0 left-0 bg-[var(--theme-deck-a-base)]/30 transition-all duration-100"
               style={{ 
                 height: `${volumeA * 100}%`,
                 width: '100%'
@@ -60,8 +60,8 @@ export function ABSwitch({
             onClick={() => onSwitch('both')}
             className={`px-3 py-2 rounded-xl font-semibold transition-all duration-200 flex items-center gap-1 border relative text-xs ${
               isTransitioning
-                ? 'bg-gradient-to-r from-emerald-500 to-purple-500 text-white shadow-lg neon-glow-fusion border-transparent animate-pulse'
-                : 'glass-panel text-audio-text-dim hover:bg-gradient-to-r hover:from-emerald-500/20 hover:to-purple-500/20 hover:text-white border-slate-600 hover:border-transparent'
+                ? 'bg-theme-fusion text-white shadow-lg neon-glow-fusion border-transparent animate-pulse'
+                : 'glass-panel text-audio-text-dim hover:bg-theme-fusion hover:bg-opacity-20 hover:text-white border-slate-600 hover:border-transparent'
             }`}
             style={{ outline: 'none', outlineWidth: 0 }}
             disabled={isTransitioning}
@@ -91,8 +91,8 @@ export function ABSwitch({
           onClick={() => onSwitch('B')}
           className={`flex-grow h-12 rounded-2xl border-2 transition-all duration-300 flex items-center justify-center text-lg font-bold relative overflow-hidden ${
             dominantTrack === 'B' && !isTransitioning
-              ? 'bg-gradient-to-br from-purple-500 to-purple-600 border-purple-400 text-white neon-glow-fusion scale-110 shadow-lg'
-              : 'glass-panel border-slate-600 text-audio-text-dim hover:border-purple-500 hover:text-white hover:scale-105 hover:bg-gradient-to-br hover:from-emerald-500/10 hover:to-purple-500/10'
+              ? 'bg-gradient-to-br from-[var(--theme-deck-b-base)] to-[var(--theme-deck-b-strong)] border-[var(--theme-deck-b-text)] text-white neon-glow-fusion scale-110 shadow-lg'
+              : 'glass-panel border-slate-600 text-audio-text-dim hover:border-[var(--theme-deck-b-base)] hover:text-white hover:scale-105 hover:bg-gradient-to-br hover:from-[var(--theme-deck-a-base)]/10 hover:to-[var(--theme-deck-b-base)]/10'
           }`}
           style={{ outline: 'none', outlineWidth: 0 }}
           disabled={isTransitioning}
@@ -101,7 +101,7 @@ export function ABSwitch({
           {/* Volume indicator overlay */}
           {isTransitioning && (
             <div 
-              className="absolute bottom-0 left-0 bg-purple-500/30 transition-all duration-100"
+              className="absolute bottom-0 left-0 bg-[var(--theme-deck-b-base)]/30 transition-all duration-100"
               style={{ 
                 height: `${volumeB * 100}%`,
                 width: '100%'

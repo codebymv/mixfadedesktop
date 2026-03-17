@@ -324,7 +324,7 @@ export function SpectrogramAnalyzer({
               className="w-full h-36 bg-slate-900 rounded-lg border border-slate-700/50"
             />
             {isPlaying && (
-              <div className="absolute top-1 right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+              <div className="absolute top-1 right-1 w-2 h-2 bg-[var(--theme-deck-a-base)] rounded-full animate-pulse" />
             )}
           </div>
           <div className="flex justify-between text-[10px] text-slate-500 mt-1.5 font-mono">
@@ -441,7 +441,7 @@ export function SpectrogramAnalyzer({
             <div className={`mt-1 flex items-center gap-1.5 font-mono font-bold tabular-nums whitespace-nowrap ${mixToneClass}`}>
               <div className={`w-2 h-2 rounded-full ${
                 crossfadeVolume === 0 ? 'bg-red-500' :
-                isPlaying ? 'bg-green-500 animate-pulse' : 'bg-slate-500'
+                isPlaying ? 'bg-[var(--theme-deck-a-base)] animate-pulse' : 'bg-slate-500'
               }`}></div>
               <span>{transportLabel}</span>
             </div>

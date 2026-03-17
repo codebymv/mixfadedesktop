@@ -277,7 +277,7 @@ export function FrequencyVisualizer({ frequencyData, isActive, isPlaying, crossf
               <div className={`mt-1 flex items-center gap-1.5 font-mono font-bold tabular-nums whitespace-nowrap ${mixToneClass}`}>
                 <div className={`w-2 h-2 rounded-full ${
                   crossfadeVolume === 0 ? 'bg-red-500' :
-                  isPlaying ? 'bg-green-500 animate-pulse' : 'bg-slate-500'
+                  isPlaying ? 'bg-[var(--theme-deck-a-base)] animate-pulse' : 'bg-slate-500'
                 }`}></div>
                 <span>{transportLabel}</span>
               </div>
