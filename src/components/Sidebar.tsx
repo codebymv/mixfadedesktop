@@ -8,6 +8,7 @@ import { AnalysisPanel } from './sidebar/AnalysisPanel';
 import { SettingsPanel } from './sidebar/SettingsPanel';
 import { HelpPanel } from './sidebar/HelpPanel';
 import { VisualizerPanel } from './sidebar/VisualizerPanel';
+import type { SavedSeed } from './sidebar/VisualizerPanel';
 import type { RecentFile } from '../types/recentFile';
 
 interface SidebarProps {
@@ -39,6 +40,10 @@ interface SidebarProps {
   visualizerSeed?: number;
   onRollVisualizerSeed?: () => void;
   onResetVisualizerSeed?: () => void;
+  savedVisualizerSeeds?: SavedSeed[];
+  onSaveVisualizerSeed?: () => void;
+  onLoadVisualizerSeed?: (seed: number) => void;
+  onDeleteVisualizerSeed?: (id: string) => void;
 }
 
 export function Sidebar({
@@ -69,7 +74,11 @@ export function Sidebar({
   // Visualizer seed
   visualizerSeed = 42,
   onRollVisualizerSeed,
-  onResetVisualizerSeed
+  onResetVisualizerSeed,
+  savedVisualizerSeeds = [],
+  onSaveVisualizerSeed,
+  onLoadVisualizerSeed,
+  onDeleteVisualizerSeed,
 }: SidebarProps) {
   // Get current activity info
   const currentActivity = activities.find(activity => activity.id === activeActivity);
@@ -111,6 +120,10 @@ export function Sidebar({
             seed={visualizerSeed}
             onRollSeed={onRollVisualizerSeed ?? (() => {})}
             onResetSeed={onResetVisualizerSeed ?? (() => {})}
+            savedSeeds={savedVisualizerSeeds}
+            onSaveSeed={onSaveVisualizerSeed ?? (() => {})}
+            onLoadSeed={onLoadVisualizerSeed ?? (() => {})}
+            onDeleteSeed={onDeleteVisualizerSeed ?? (() => {})}
           />
         );
       case 'settings':

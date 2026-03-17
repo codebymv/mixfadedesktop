@@ -1,10 +1,75 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { Music, Activity } from 'lucide-react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { Music, Activity, ChevronDown, ChevronUp, TrendingUp, Radio, Waves } from 'lucide-react';
 import { AudioLevels, StereoAnalysis, FrequencyAnalysis, SpectrogramAnalysis, RMSAverager, FrequencyAverager, StereoAverager, SpectrogramAverager, SpectrogramBuffer, calculateFrequencyMetrics, calculateSpectrogramMetrics } from '../../utils/audioAnalysis';
 import { LevelsAnalysisSection } from '../analysis/LevelsAnalysisSection';
 import { FrequencyAnalysisSection } from '../analysis/FrequencyAnalysisSection';
 import { StereoAnalysisSection } from '../analysis/StereoAnalysisSection';
 import { SpectrogramAnalysisSection } from '../analysis/SpectrogramAnalysisSection';
+import { formatDb, linearToDb, formatCorrelation, formatStereoWidth, formatBrightness, formatActivity } from '../../utils/analysisFormatters';
+import { useColorTheme } from '../../hooks/useColorTheme';
+
+// ─── Collapsible section state (persisted to localStorage) ───────────────────
+const COLLAPSED_KEY = 'mixfade_analysis_collapsed';
+
+function useCollapsedSections() {
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem(COLLAPSED_KEY);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggle = useCallback((id: string) => {
+    setCollapsed(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  return { collapsed, toggle };
+}
+
+// ─── CollapsibleCard ─────────────────────────────────────────────────────────
+interface CollapsibleCardProps {
+  id: string;
+  title: string;
+  icon: React.ReactNode;
+  summary: React.ReactNode;
+  isCollapsed: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}
+
+function CollapsibleCard({ id, title, icon, summary, isCollapsed, onToggle, children }: CollapsibleCardProps) {
+  return (
+    <div className="bg-slate-800 rounded-md overflow-hidden">
+      {/* Clickable header bar */}
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-2 px-3 py-1.5 hover:bg-slate-700/50 transition-colors cursor-pointer select-none"
+        aria-expanded={!isCollapsed}
+      >
+        <span className="text-slate-400 shrink-0">{icon}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-300">{title}</span>
+        {isCollapsed && (
+          <span className="flex-1 text-right text-[10px] font-mono text-slate-400 truncate pr-1">{summary}</span>
+        )}
+        <span className="text-slate-500 shrink-0 ml-auto">
+          {isCollapsed ? <ChevronDown size={12} /> : <ChevronUp size={12} />}
+        </span>
+      </button>
+      {/* Expandable body */}
+      {!isCollapsed && (
+        <div className="border-t border-slate-700/60">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Analysis snapshot interface
 interface AnalysisSnapshot {
@@ -59,6 +124,8 @@ export function AnalysisPanel({
   volumeA = 1,
   volumeB = 0
 }: AnalysisPanelProps) {
+  const { collapsed, toggle } = useCollapsedSections();
+  const colorTheme = useColorTheme();
   const [recentAnalysis, setRecentAnalysis] = useState<AnalysisSnapshot[]>([]);
   
   // Smoothed values for A and B tracks (like LevelMeter)
@@ -605,45 +672,120 @@ export function AnalysisPanel({
 
   // Helper functions moved to utils/analysisFormatters.ts
 
+  // ── Collapsed summaries ──────────────────────────────────────────────────
+  const ca = currentAnalysis;
+
+  const levelsSummary = (() => {
+    const aLufs = ca.trackADeckLevels ? formatDb(ca.trackADeckLevels.lufs) : '--';
+    const bLufs = ca.trackBDeckLevels ? formatDb(ca.trackBDeckLevels.lufs) : '--';
+    const aRms  = ca.trackADeckLevels ? formatDb(linearToDb(ca.trackADeckLevels.rms)) : '--';
+    const bRms  = ca.trackBDeckLevels ? formatDb(linearToDb(ca.trackBDeckLevels.rms)) : '--';
+    return `A ${aLufs} LUFS · ${aRms} RMS  /  B ${bLufs} LUFS · ${bRms} RMS`;
+  })();
+
+  const freqSummary = (() => {
+    const aBass = ca.trackAFrequencyAnalysis ? formatDb(ca.trackAFrequencyAnalysis.bassEnergy) : '--';
+    const bBass = ca.trackBFrequencyAnalysis ? formatDb(ca.trackBFrequencyAnalysis.bassEnergy) : '--';
+    const aMid  = ca.trackAFrequencyAnalysis ? formatDb(ca.trackAFrequencyAnalysis.midEnergy) : '--';
+    const bMid  = ca.trackBFrequencyAnalysis ? formatDb(ca.trackBFrequencyAnalysis.midEnergy) : '--';
+    return `Bass A ${aBass} / B ${bBass}  ·  Mid A ${aMid} / B ${bMid}`;
+  })();
+
+  const stereoSummary = (() => {
+    const aCorr  = ca.trackAStereoAnalysis ? formatCorrelation(ca.trackAStereoAnalysis.phaseCorrelation) : '--';
+    const bCorr  = ca.trackBStereoAnalysis ? formatCorrelation(ca.trackBStereoAnalysis.phaseCorrelation) : '--';
+    const aWidth = ca.trackAStereoAnalysis ? formatStereoWidth(ca.trackAStereoAnalysis.stereoWidth) : '--';
+    const bWidth = ca.trackBStereoAnalysis ? formatStereoWidth(ca.trackBStereoAnalysis.stereoWidth) : '--';
+    return `Corr A ${aCorr} / B ${bCorr}  ·  Width A ${aWidth}% / B ${bWidth}%`;
+  })();
+
+  const spectrogramSummary = (() => {
+    const aBright = ca.trackASpectrogramAnalysis ? formatBrightness(ca.trackASpectrogramAnalysis.brightness) : '--';
+    const bBright = ca.trackBSpectrogramAnalysis ? formatBrightness(ca.trackBSpectrogramAnalysis.brightness) : '--';
+    const aAct    = ca.trackASpectrogramAnalysis ? formatActivity(ca.trackASpectrogramAnalysis.activity) : '--';
+    const bAct    = ca.trackBSpectrogramAnalysis ? formatActivity(ca.trackBSpectrogramAnalysis.activity) : '--';
+    return `Bright A ${aBright} / B ${bBright}  ·  Act A ${aAct}% / B ${bAct}%`;
+  })();
+
   return (
     <div className="p-4 space-y-6">
-      {/* Recent Analysis */}
+      {/* A/B Analysis */}
       <div className="space-y-2">
         <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">A/B Analysis</h3>
-        
-        {currentAnalysis.trackADeckLevels || currentAnalysis.trackBDeckLevels ? (
+
+        {ca.trackADeckLevels || ca.trackBDeckLevels ? (
           <div className="space-y-1">
-            <LevelsAnalysisSection
-              trackADeckLevels={currentAnalysis.trackADeckLevels}
-              trackBDeckLevels={currentAnalysis.trackBDeckLevels}
-              isTransitioning={isTransitioning}
-              isTrackAPlaying={isTrackAPlaying}
-              isTrackBPlaying={isTrackBPlaying}
-            />
+            {/* ── Levels ── */}
+            <CollapsibleCard
+              id="levels"
+              title="Levels"
+              icon={<TrendingUp size={12} />}
+              summary={levelsSummary}
+              isCollapsed={!!collapsed['levels']}
+              onToggle={() => toggle('levels')}
+            >
+              <LevelsAnalysisSection
+                trackADeckLevels={ca.trackADeckLevels}
+                trackBDeckLevels={ca.trackBDeckLevels}
+                isTransitioning={isTransitioning}
+                isTrackAPlaying={isTrackAPlaying}
+                isTrackBPlaying={isTrackBPlaying}
+              />
+            </CollapsibleCard>
 
-            <FrequencyAnalysisSection
-              trackAFrequencyAnalysis={currentAnalysis.trackAFrequencyAnalysis}
-              trackBFrequencyAnalysis={currentAnalysis.trackBFrequencyAnalysis}
-              isTransitioning={isTransitioning}
-              isTrackAPlaying={isTrackAPlaying}
-              isTrackBPlaying={isTrackBPlaying}
-            />
+            {/* ── Frequencies ── */}
+            <CollapsibleCard
+              id="frequencies"
+              title="Frequencies"
+              icon={<Activity size={12} />}
+              summary={freqSummary}
+              isCollapsed={!!collapsed['frequencies']}
+              onToggle={() => toggle('frequencies')}
+            >
+              <FrequencyAnalysisSection
+                trackAFrequencyAnalysis={ca.trackAFrequencyAnalysis}
+                trackBFrequencyAnalysis={ca.trackBFrequencyAnalysis}
+                isTransitioning={isTransitioning}
+                isTrackAPlaying={isTrackAPlaying}
+                isTrackBPlaying={isTrackBPlaying}
+              />
+            </CollapsibleCard>
 
-            <StereoAnalysisSection
-              trackAStereoAnalysis={currentAnalysis.trackAStereoAnalysis}
-              trackBStereoAnalysis={currentAnalysis.trackBStereoAnalysis}
-              isTransitioning={isTransitioning}
-              isTrackAPlaying={isTrackAPlaying}
-              isTrackBPlaying={isTrackBPlaying}
-            />
+            {/* ── Stereo ── */}
+            <CollapsibleCard
+              id="stereo"
+              title="Stereo"
+              icon={<Radio size={12} />}
+              summary={stereoSummary}
+              isCollapsed={!!collapsed['stereo']}
+              onToggle={() => toggle('stereo')}
+            >
+              <StereoAnalysisSection
+                trackAStereoAnalysis={ca.trackAStereoAnalysis}
+                trackBStereoAnalysis={ca.trackBStereoAnalysis}
+                isTransitioning={isTransitioning}
+                isTrackAPlaying={isTrackAPlaying}
+                isTrackBPlaying={isTrackBPlaying}
+              />
+            </CollapsibleCard>
 
-            <SpectrogramAnalysisSection
-              trackASpectrogramAnalysis={currentAnalysis.trackASpectrogramAnalysis}
-              trackBSpectrogramAnalysis={currentAnalysis.trackBSpectrogramAnalysis}
-              isTransitioning={isTransitioning}
-              isTrackAPlaying={isTrackAPlaying}
-              isTrackBPlaying={isTrackBPlaying}
-            />
+            {/* ── Spectrogram ── */}
+            <CollapsibleCard
+              id="spectrogram"
+              title="Spectrogram"
+              icon={<Waves size={12} />}
+              summary={spectrogramSummary}
+              isCollapsed={!!collapsed['spectrogram']}
+              onToggle={() => toggle('spectrogram')}
+            >
+              <SpectrogramAnalysisSection
+                trackASpectrogramAnalysis={ca.trackASpectrogramAnalysis}
+                trackBSpectrogramAnalysis={ca.trackBSpectrogramAnalysis}
+                isTransitioning={isTransitioning}
+                isTrackAPlaying={isTrackAPlaying}
+                isTrackBPlaying={isTrackBPlaying}
+              />
+            </CollapsibleCard>
           </div>
         ) : (
           <div className="text-center py-8">

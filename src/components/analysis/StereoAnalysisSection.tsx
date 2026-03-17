@@ -1,7 +1,5 @@
 import React from 'react';
-import { Radio } from 'lucide-react';
 import { StereoAnalysis } from '../../utils/audioAnalysis';
-import { AnalysisSectionHeader } from './AnalysisSectionHeader';
 import { ComparisonRow } from './ComparisonRow';
 import { DualComparisonRow } from './DualComparisonRow';
 import { formatCorrelation, formatStereoWidth, formatDb, linearToDb, getDelta, getStereoPercent, getLevelColor } from '../../utils/analysisFormatters';
@@ -23,34 +21,14 @@ export function StereoAnalysisSection({
 }: StereoAnalysisSectionProps) {
   if (!trackAStereoAnalysis && !trackBStereoAnalysis) {
     return (
-      <div className="bg-slate-800 rounded-md overflow-hidden flex">
-        <AnalysisSectionHeader
-          icon={Radio}
-          title="Stereo"
-          isTransitioning={isTransitioning}
-          isTrackAPlaying={isTrackAPlaying}
-          isTrackBPlaying={isTrackBPlaying}
-          gradientId="stereoGradient"
-        />
-        <div className="flex-1 px-3 py-2 text-xs text-white/70 flex items-center min-w-0">
-          No stereo data available
-        </div>
+      <div className="px-3 py-2 text-xs text-white/70">
+        No stereo data available
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-800 rounded-md overflow-hidden flex">
-      <AnalysisSectionHeader
-        icon={Radio}
-        title="Stereo"
-        isTransitioning={isTransitioning}
-        isTrackAPlaying={isTrackAPlaying}
-        isTrackBPlaying={isTrackBPlaying}
-        gradientId="stereoGradient"
-      />
-
-      <div className="flex-1 px-3 py-2 min-w-0">
+    <div className="px-3 py-2">
         <div className="space-y-3">
         {/* Phase Correlation Comparison */}
         <ComparisonRow
@@ -89,7 +67,6 @@ export function StereoAnalysisSection({
           colorB2={trackBStereoAnalysis ? getLevelColor(linearToDb(trackBStereoAnalysis.sideLevel)) : undefined}
         />
         </div>
-      </div>
     </div>
   );
 }

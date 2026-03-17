@@ -24,7 +24,7 @@ const MAX_RENDER_DPR = 1.25;
 const MAX_RENDER_PIXELS = 2560 * 1440;
 const ACTIVE_PRESET_BLEND_SECONDS = 0.7;
 const PRESET_ENTRIES = Object.entries(butterchurnPresets.getPresets());
-const getPresetEntryForSeed = (seed: number) => PRESET_ENTRIES.length
+export const getPresetEntryForSeed = (seed: number) => PRESET_ENTRIES.length
   ? (PRESET_ENTRIES[(seed >>> 0) % PRESET_ENTRIES.length] as [string, unknown])
   : ['No Preset', null] as [string, unknown];
 const getRenderScale = (width: number, height: number) => {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
-import { Link as LinkIcon } from 'lucide-react';
+import { Link as LinkIcon, Repeat } from 'lucide-react';
 import { AudioLevels, StereoAnalysis } from '../utils/audioAnalysis';
 import { useSettings } from '../contexts/SettingsContext';
 import { AudioContextNodes, useAudioContext } from '../hooks/useAudioContext';
@@ -95,6 +95,14 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
 
   const volume = deckVolume !== undefined ? deckVolume : internalVolume;
   const isMuted = externalIsMuted !== undefined ? externalIsMuted : internalIsMuted;
+  const [isLooping, setIsLooping] = useState(false);
+
+  // Sync loop state to audio element
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.loop = isLooping;
+    }
+  }, [isLooping]);
 
   // Color configuration
   const config = useMemo(() => {
@@ -557,12 +565,13 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
           </div>
         </div>
 
-        {/* Bottom Row: Link, Volume, Timestamp */}
-        <div className="flex items-center gap-4">
+        {/* Bottom Row: Link, Loop, Volume, Timestamp */}
+        <div className="flex items-center gap-2">
+          {/* Link button */}
           {onToggleLinkedPlayback && (
             <button
               onClick={onToggleLinkedPlayback}
-              className={`p-2 rounded-xl transition-all duration-200 border flex items-center justify-center ${
+              className={`p-2 rounded-xl transition-all duration-200 border flex items-center justify-center flex-shrink-0 ${
                 isLinkedPlayback
                   ? `${config.lightBgColor} ${config.textColor} ${config.borderColor} ${config.glowShadow}`
                   : 'glass-panel text-audio-text-dim hover:text-white border-transparent hover:border-slate-600'
@@ -573,8 +582,22 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
               <LinkIcon size={16} className={isLinkedPlayback ? "" : "opacity-50"} />
             </button>
           )}
-          
-          <div className="flex-grow flex items-center min-w-[100px]">
+
+          {/* Loop button */}
+          <button
+            onClick={() => setIsLooping(l => !l)}
+            className={`p-2 rounded-xl transition-all duration-200 border flex items-center justify-center flex-shrink-0 ${
+              isLooping
+                ? `${config.lightBgColor} ${config.textColor} ${config.borderColor} ${config.glowShadow}`
+                : 'glass-panel text-audio-text-dim hover:text-white border-transparent hover:border-slate-600'
+            }`}
+            title={isLooping ? "Disable Loop" : "Enable Loop"}
+            style={{ outline: 'none', outlineWidth: 0 }}
+          >
+            <Repeat size={16} className={isLooping ? "" : "opacity-50"} />
+          </button>
+
+          <div className="flex-grow flex items-center min-w-[60px]">
             <VolumeControls
               volume={volume}
               isMuted={isMuted}

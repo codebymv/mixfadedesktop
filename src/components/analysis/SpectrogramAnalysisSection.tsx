@@ -1,7 +1,5 @@
 import React from 'react';
-import { Waves } from 'lucide-react';
 import { SpectrogramAnalysis } from '../../utils/audioAnalysis';
-import { AnalysisSectionHeader } from './AnalysisSectionHeader';
 import { 
   formatBrightness, 
   formatActivity, 
@@ -31,34 +29,14 @@ export function SpectrogramAnalysisSection({
 }: SpectrogramAnalysisSectionProps) {
   if (!trackASpectrogramAnalysis && !trackBSpectrogramAnalysis) {
     return (
-      <div className="bg-slate-800 rounded-md overflow-hidden flex">
-        <AnalysisSectionHeader
-          icon={Waves}
-          title="Spectrogram"
-          isTransitioning={isTransitioning}
-          isTrackAPlaying={isTrackAPlaying}
-          isTrackBPlaying={isTrackBPlaying}
-          gradientId="spectrogramGradient"
-        />
-        <div className="flex-1 px-3 py-2 text-xs text-white/70 flex items-center min-w-0">
-          No spectrogram data available
-        </div>
+      <div className="px-3 py-2 text-xs text-white/70">
+        No spectrogram data available
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-800 rounded-md overflow-hidden flex">
-      <AnalysisSectionHeader
-        icon={Waves}
-        title="Spectrogram"
-        isTransitioning={isTransitioning}
-        isTrackAPlaying={isTrackAPlaying}
-        isTrackBPlaying={isTrackBPlaying}
-        gradientId="spectrogramGradient"
-      />
-
-      <div className="flex-1 px-3 py-2 min-w-0">
+    <div className="px-3 py-2">
         <div className="space-y-3">
         {/* Brightness Comparison */}
         <div>
@@ -232,7 +210,6 @@ export function SpectrogramAnalysisSection({
           </div>
         </div>
         </div>
-      </div>
     </div>
   );
 }

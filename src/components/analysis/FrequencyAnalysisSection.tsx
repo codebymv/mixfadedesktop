@@ -1,7 +1,5 @@
 import React from 'react';
-import { Activity } from 'lucide-react';
 import { FrequencyAnalysis } from '../../utils/audioAnalysis';
-import { AnalysisSectionHeader } from './AnalysisSectionHeader';
 import { ComparisonRow } from './ComparisonRow';
 import { formatDb, formatFrequency, getDelta, getFrequencyDelta } from '../../utils/analysisFormatters';
 
@@ -22,34 +20,14 @@ export function FrequencyAnalysisSection({
 }: FrequencyAnalysisSectionProps) {
   if (!trackAFrequencyAnalysis && !trackBFrequencyAnalysis) {
     return (
-      <div className="bg-slate-800 rounded-md overflow-hidden flex">
-        <AnalysisSectionHeader
-          icon={Activity}
-          title="Frequencies"
-          isTransitioning={isTransitioning}
-          isTrackAPlaying={isTrackAPlaying}
-          isTrackBPlaying={isTrackBPlaying}
-          gradientId="frequenciesGradient"
-        />
-        <div className="flex-1 px-3 py-2 text-xs text-white/70 flex items-center min-w-0">
-          No frequency data available
-        </div>
+      <div className="px-3 py-2 text-xs text-white/70">
+        No frequency data available
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-800 rounded-md overflow-hidden flex">
-      <AnalysisSectionHeader
-        icon={Activity}
-        title="Frequencies"
-        isTransitioning={isTransitioning}
-        isTrackAPlaying={isTrackAPlaying}
-        isTrackBPlaying={isTrackBPlaying}
-        gradientId="frequenciesGradient"
-      />
-
-      <div className="flex-1 px-3 py-2 min-w-0">
+    <div className="px-3 py-2">
         <div className="space-y-3">
         {/* Bass Comparison */}
         <ComparisonRow
@@ -127,7 +105,6 @@ export function FrequencyAnalysisSection({
           </div>
         </div>
         </div>
-      </div>
     </div>
   );
 }

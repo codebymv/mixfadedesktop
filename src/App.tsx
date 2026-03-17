@@ -7,7 +7,8 @@ import { AnalysisTabs } from './components/AnalysisTabs';
 import { AudioLevels, StereoAnalysis } from './utils/audioAnalysis';
 import { ActivityBar } from './components/ActivityBar';
 import { Sidebar } from './components/Sidebar';
-import { VisualizerMode, DEFAULT_VIS_SEED } from './components/VisualizerMode';
+import { VisualizerMode, DEFAULT_VIS_SEED, getPresetEntryForSeed } from './components/VisualizerMode';
+import type { SavedSeed } from './components/sidebar/VisualizerPanel';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useApplyColorTheme } from './hooks/useColorTheme';
 import { useSettings } from './contexts/SettingsContext';
@@ -87,6 +88,34 @@ function App() {
   const [visualizerSeed, setVisualizerSeed] = useState(DEFAULT_VIS_SEED);
   const rollVisualizerSeed = useCallback(() => setVisualizerSeed((Math.random() * 0xFFFFFFFF) >>> 0), []);
   const resetVisualizerSeed = useCallback(() => setVisualizerSeed(DEFAULT_VIS_SEED), []);
+
+  // Saved seeds — persisted to localStorage
+  const SAVED_SEEDS_KEY = 'mixfade-vis-seeds';
+  const [savedVisualizerSeeds, setSavedVisualizerSeeds] = useState<SavedSeed[]>(() => {
+    try {
+      const stored = localStorage.getItem(SAVED_SEEDS_KEY);
+      return stored ? (JSON.parse(stored) as SavedSeed[]) : [];
+    } catch {
+      return [];
+    }
+  });
+  useEffect(() => {
+    localStorage.setItem(SAVED_SEEDS_KEY, JSON.stringify(savedVisualizerSeeds));
+  }, [savedVisualizerSeeds]);
+
+  const saveVisualizerSeed = useCallback(() => {
+    setSavedVisualizerSeeds(prev => {
+      if (prev.some(s => s.seed === visualizerSeed)) return prev; // no dupes
+      const [name] = getPresetEntryForSeed(visualizerSeed);
+      return [...prev, { id: Date.now().toString(), seed: visualizerSeed, name, savedAt: Date.now() }];
+    });
+  }, [visualizerSeed]);
+
+  const loadVisualizerSeed = useCallback((seed: number) => setVisualizerSeed(seed), []);
+
+  const deleteVisualizerSeed = useCallback((id: string) => {
+    setSavedVisualizerSeeds(prev => prev.filter(s => s.id !== id));
+  }, []);
   const visualizerAudioNodesA = waveformPlayerARef.current?.getAudioNodes() ?? null;
   const visualizerAudioNodesB = waveformPlayerBRef.current?.getAudioNodes() ?? null;
   const visualizerMixA = deckAMuted ? 0 : deckAVolume * volumeA;
@@ -488,6 +517,10 @@ function App() {
         visualizerSeed={visualizerSeed}
         onRollVisualizerSeed={rollVisualizerSeed}
         onResetVisualizerSeed={resetVisualizerSeed}
+        savedVisualizerSeeds={savedVisualizerSeeds}
+        onSaveVisualizerSeed={saveVisualizerSeed}
+        onLoadVisualizerSeed={loadVisualizerSeed}
+        onDeleteVisualizerSeed={deleteVisualizerSeed}
       />
 
       {/* Main Content Area */}
