@@ -1,6 +1,34 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { AppSettings, DEFAULT_SETTINGS } from '../types/settings';
 
+const mergeSettings = (savedSettings?: Partial<AppSettings> | null): AppSettings => ({
+  ...DEFAULT_SETTINGS,
+  analysis: {
+    ...DEFAULT_SETTINGS.analysis,
+    ...(savedSettings?.analysis ?? {}),
+  },
+  ui: {
+    ...DEFAULT_SETTINGS.ui,
+    ...(savedSettings?.ui ?? {}),
+  },
+  audio: {
+    ...DEFAULT_SETTINGS.audio,
+    ...(savedSettings?.audio ?? {}),
+  },
+  files: {
+    ...DEFAULT_SETTINGS.files,
+    ...(savedSettings?.files ?? {}),
+  },
+  export: {
+    ...DEFAULT_SETTINGS.export,
+    ...(savedSettings?.export ?? {}),
+  },
+  shortcuts: {
+    ...DEFAULT_SETTINGS.shortcuts,
+    ...(savedSettings?.shortcuts ?? {}),
+  },
+});
+
 interface SettingsContextType {
   settings: AppSettings;
   updateSetting: <T extends keyof AppSettings>(
@@ -23,12 +51,12 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('mixfade-settings');
     if (saved) {
       try {
-        return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+        return mergeSettings(JSON.parse(saved) as Partial<AppSettings>);
       } catch {
-        return DEFAULT_SETTINGS;
+        return mergeSettings();
       }
     }
-    return DEFAULT_SETTINGS;
+    return mergeSettings();
   });
 
   // Save settings to localStorage when they change
@@ -41,17 +69,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     key: keyof AppSettings[T],
     value: AppSettings[T][keyof AppSettings[T]]
   ) => {
-    console.log(`🔧 UPDATE SETTING: ${String(category)}.${String(key)} = ${value}`);
     setSettings(prev => {
-      const newSettings = {
+      return {
         ...prev,
         [category]: {
           ...prev[category],
           [key]: value
         }
       };
-      console.log(`🔧 NEW SETTINGS STATE:`, newSettings);
-      return newSettings;
     });
   }, []);
 

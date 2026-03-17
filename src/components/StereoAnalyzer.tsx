@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { StereoAnalysis, StereoAverager } from '../utils/audioAnalysis';
-import { getStereoCorrelationColor, getStereoWidthColor, getLRBalanceColor, formatDb, getLevelColor, getLevelBgColor, linearToDb } from '../utils/analysisFormatters';
+import { getStereoCorrelationColor, getStereoWidthColor, getLRBalanceColor, formatBalanceLabel, formatDb, formatMixPercent, formatSignedCorrelation, formatStereoWidth, formatMonoCompatibilityLabel, getLevelColor, getLevelBgColor, getMixToneClass, getMonoCompatibilityToneClass, linearToDb } from '../utils/analysisFormatters';
+import { InsightMetricCard } from './analysis/InsightMetricCard';
 
 interface StereoAnalyzerProps {
   stereoData: StereoAnalysis;
@@ -278,12 +279,6 @@ export function StereoAnalyzer({
     return 'bg-red-500';
   };
 
-  // Format balance display
-  const formatBalance = (balance: number) => {
-    if (Math.abs(balance) < 0.05) return 'CENTER';
-    return balance > 0 ? `R${Math.abs(balance * 100).toFixed(0)}%` : `L${Math.abs(balance * 100).toFixed(0)}%`;
-  };
-
   // Get stereo width background color
   const getStereoWidthBgColor = (width: number) => {
     const textColor = getStereoWidthColor(width);
@@ -301,22 +296,48 @@ export function StereoAnalyzer({
     return 'bg-red-500';
   };
 
+  const mixToneClass = getMixToneClass(crossfadeVolume, isPlaying);
+  const transportLabel = crossfadeVolume === 0 ? 'MUTED' : isPlaying ? 'PLAYING' : 'PAUSED';
+
   return (
-    <div className="h-full flex flex-col space-y-3">
+    <div className="h-full flex flex-col">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 shrink-0">
+        <InsightMetricCard
+          label="Mono"
+          value={formatMonoCompatibilityLabel(displayData.monoCompatibility)}
+          valueClassName={getMonoCompatibilityToneClass(displayData.monoCompatibility)}
+        />
+        <InsightMetricCard
+          label="Phase"
+          value={formatSignedCorrelation(displayData.phaseCorrelation)}
+          valueClassName={getStereoCorrelationColor(displayData.phaseCorrelation)}
+        />
+        <InsightMetricCard
+          label="Width"
+          value={formatStereoWidth(displayData.stereoWidth)}
+          valueClassName={getStereoWidthColor(displayData.stereoWidth)}
+        />
+        <InsightMetricCard
+          label="Balance"
+          value={formatBalanceLabel(displayData.balance)}
+          valueClassName={getLRBalanceColor(displayData.balance)}
+        />
+      </div>
+
       {/* Main Content - Reduced spacing */}
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4 mt-3 shrink-0">
         {/* Vectorscope */}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="relative">
             <canvas
               ref={vectorscopeRef}
-              className="w-full h-32 bg-slate-900 rounded-lg border border-slate-700/50"
+              className="w-full h-36 bg-slate-900 rounded-lg border border-slate-700/50"
             />
             {isPlaying && (
               <div className="absolute top-1 right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse" />
             )}
           </div>
-          <div className="flex justify-between text-xs text-slate-500 font-mono">
+          <div className="flex justify-between text-[10px] text-slate-500 font-mono">
             <span>MONO</span>
             <span>STEREO</span>
             <span>PHASE</span>
@@ -328,12 +349,12 @@ export function StereoAnalyzer({
           {/* Phase Correlation */}
           <div>
             <div className="flex justify-between text-xs text-slate-400 mb-1">
-              <span>Phase Correlation</span>
-              <span className={`font-mono font-bold ${getStereoCorrelationColor(displayData.phaseCorrelation)}`}>
-                {displayData.phaseCorrelation.toFixed(3)}
+              <span className="uppercase tracking-[0.12em] whitespace-nowrap">Phase</span>
+              <span className={`font-mono font-bold tabular-nums whitespace-nowrap ${getStereoCorrelationColor(displayData.phaseCorrelation)}`}>
+                {formatSignedCorrelation(displayData.phaseCorrelation)}
               </span>
             </div>
-            <div className="h-2 bg-slate-900 rounded-full overflow-hidden relative">
+            <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden relative">
               {/* Center line at 0 correlation */}
               <div className="absolute left-1/2 top-0 w-0.5 h-full bg-slate-600" />
               {/* Correlation indicator */}
@@ -350,12 +371,12 @@ export function StereoAnalyzer({
           {/* Stereo Width */}
           <div>
             <div className="flex justify-between text-xs text-slate-400 mb-1">
-              <span>Stereo Width</span>
-              <span className={`font-mono font-bold ${getStereoWidthColor(displayData.stereoWidth)}`}>
-                {displayData.stereoWidth.toFixed(0)}%
+              <span className="uppercase tracking-[0.12em] whitespace-nowrap">Width</span>
+              <span className={`font-mono font-bold tabular-nums whitespace-nowrap ${getStereoWidthColor(displayData.stereoWidth)}`}>
+                {formatStereoWidth(displayData.stereoWidth)}
               </span>
             </div>
-            <div className="h-2 bg-slate-900 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
               <div 
                 className={`h-full rounded-full transition-all duration-200 ${getStereoWidthBgColor(displayData.stereoWidth)}`}
                 style={{ width: `${displayData.stereoWidth}%` }}
@@ -366,12 +387,12 @@ export function StereoAnalyzer({
           {/* Balance */}
           <div>
             <div className="flex justify-between text-xs text-slate-400 mb-1">
-              <span>Balance</span>
-              <span className={`font-mono font-bold ${getLRBalanceColor(displayData.balance)}`}>
-                {formatBalance(displayData.balance)}
+              <span className="uppercase tracking-[0.12em] whitespace-nowrap">Balance</span>
+              <span className={`font-mono font-bold tabular-nums whitespace-nowrap ${getLRBalanceColor(displayData.balance)}`}>
+                {formatBalanceLabel(displayData.balance)}
               </span>
             </div>
-            <div className="h-2 bg-slate-900 rounded-full overflow-hidden relative">
+            <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden relative">
               <div className="absolute left-1/2 top-0 w-0.5 h-full bg-slate-600" />
               <div 
                 className={`absolute top-0 h-full w-1 rounded-full transition-all duration-200 ${getBalanceBgColor(displayData.balance)}`}
@@ -387,26 +408,23 @@ export function StereoAnalyzer({
           <div className="grid grid-cols-2 gap-3 pt-1.5 border-t border-slate-700/50">
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-400 font-medium">Mid</span>
-                <span className={`font-mono font-bold text-xs ${getLevelColor(linearToDb(displayData.midLevel))}`}>
+                <span className="text-slate-400 font-medium uppercase tracking-[0.12em] whitespace-nowrap">Mid</span>
+                <span className={`font-mono font-bold text-xs tabular-nums whitespace-nowrap ${getLevelColor(linearToDb(displayData.midLevel))}`}>
                   {formatDb(linearToDb(displayData.midLevel))}
                 </span>
               </div>
               <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
                 <div 
-                  className={`h-full rounded-full transition-all duration-200 ${getLevelBgColor(linearToDb(displayData.midLevel))}`}
+                   className={`h-full rounded-full transition-all duration-200 ${getLevelBgColor(linearToDb(displayData.midLevel))}`}
                   style={{ width: `${Math.max(0, (linearToDb(displayData.midLevel) + 60) / 60 * 100)}%` }}
                 />
-              </div>
-              <div className="text-xs text-slate-500 font-mono">
-                {displayData.midLufs.toFixed(1)} LUFS
               </div>
             </div>
 
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-400 font-medium">Side</span>
-                <span className={`font-mono font-bold text-xs ${getLevelColor(linearToDb(displayData.sideLevel))}`}>
+                <span className="text-slate-400 font-medium uppercase tracking-[0.12em] whitespace-nowrap">Side</span>
+                <span className={`font-mono font-bold text-xs tabular-nums whitespace-nowrap ${getLevelColor(linearToDb(displayData.sideLevel))}`}>
                   {formatDb(linearToDb(displayData.sideLevel))}
                 </span>
               </div>
@@ -416,47 +434,29 @@ export function StereoAnalyzer({
                   style={{ width: `${Math.max(0, (linearToDb(displayData.sideLevel) + 60) / 60 * 100)}%` }}
                 />
               </div>
-              <div className="text-xs text-slate-500 font-mono">
-                {displayData.sideLufs.toFixed(1)} LUFS
-              </div>
             </div>
           </div>
         </div>
       </div>
-
-      {/* Legend */}
-      <div className="mt-2 pt-2 border-t border-slate-700/50">
-        <div className="grid grid-cols-2 gap-2 text-xs text-slate-400">
-          {/* Left: Quality & Level Indicators */}
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-1 bg-green-500 rounded"></div>
-              <span>Good</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-1 bg-yellow-500 rounded"></div>
-              <span>Fair</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-1 bg-red-500 rounded"></div>
-              <span>Poor</span>
-            </div>
+ 
+      {/* Anchor spacer */}
+      <div className="flex-1" />
+ 
+      {/* Standardized Footer block */}
+      <div className="shrink-0 pt-2 border-t border-slate-700/50">
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="rounded-lg bg-slate-900/60 px-2.5 py-2 min-w-0">
+            <div className="uppercase tracking-[0.12em] text-slate-500 whitespace-nowrap">Mix</div>
+            <div className={`mt-1 font-mono font-bold tabular-nums whitespace-nowrap ${mixToneClass}`}>{formatMixPercent(crossfadeVolume)}</div>
           </div>
-          
-          {/* Right: Status */}
-          <div className="flex items-center justify-end gap-1">
-            <div className={`flex items-center gap-1 ${
-              crossfadeVolume === 0 ? 'text-red-400' :
-              isPlaying ? 'text-green-400' : 'text-slate-400'
-            }`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${
+          <div className="rounded-lg bg-slate-900/60 px-2.5 py-2 min-w-0">
+            <div className="uppercase tracking-[0.12em] text-slate-500 whitespace-nowrap">State</div>
+            <div className={`mt-1 flex items-center gap-1.5 font-mono font-bold tabular-nums whitespace-nowrap ${mixToneClass}`}>
+              <div className={`w-2 h-2 rounded-full ${
                 crossfadeVolume === 0 ? 'bg-red-500' :
                 isPlaying ? 'bg-green-500 animate-pulse' : 'bg-slate-500'
               }`}></div>
-              <span className="font-mono text-xs">
-                {crossfadeVolume === 0 ? 'MUTED' :
-                 isPlaying ? 'PLAYING' : 'PAUSED'}
-              </span>
+              <span>{transportLabel}</span>
             </div>
           </div>
         </div>

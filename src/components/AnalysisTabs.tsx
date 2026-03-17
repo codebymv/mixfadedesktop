@@ -1,10 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { LevelMeter } from './LevelMeter';
 import { FrequencyVisualizer } from './FrequencyVisualizer';
 import { StereoAnalyzer } from './StereoAnalyzer';
 import { SpectrogramAnalyzer } from './SpectrogramAnalyzer';
 import { AudioLevels, StereoAnalysis } from '../utils/audioAnalysis';
 import { TrendingUp, Waves, Radio, Activity } from 'lucide-react';
+
+type AnalysisTabId = 'levels' | 'frequencies' | 'stereo' | 'spectrogram';
 
 interface AnalysisTabsProps {
   label: string;
@@ -29,110 +31,84 @@ export function AnalysisTabs({
   isPlaying,
   crossfadeVolume,
 }: AnalysisTabsProps) {
-  const [activeTab, setActiveTab] = useState('levels');
+  const [activeTab, setActiveTab] = useState<AnalysisTabId>('levels');
+
+  const tabs: Array<{ id: AnalysisTabId; label: string; icon: typeof TrendingUp }> = [
+    { id: 'levels', label: 'Levels', icon: TrendingUp },
+    { id: 'frequencies', label: 'Frequencies', icon: Activity },
+    { id: 'stereo', label: 'Stereo', icon: Radio },
+    { id: 'spectrogram', label: 'Spectrogram', icon: Waves },
+  ];
 
   return (
-    <div className="glass-panel rounded-3xl border border-slate-600 h-full flex flex-col">
-      {/* Tab Navigation */}
-      <div className="flex-none flex justify-center pt-3 pb-2">
-        <div className="glass-panel rounded-xl p-1 border border-slate-700/50">
-          <div className="flex space-x-1">
-            <button
-              onClick={() => setActiveTab('levels')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all text-sm ${
-                activeTab === 'levels'
-                  ? 'bg-gradient-to-r from-emerald-500 to-purple-500 text-white neon-glow-fusion'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <TrendingUp className="inline mr-1.5 h-3.5 w-3.5" />
-              Levels
-            </button>
-            <button
-              onClick={() => setActiveTab('frequencies')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all text-sm ${
-                activeTab === 'frequencies'
-                  ? 'bg-gradient-to-r from-emerald-500 to-purple-500 text-white neon-glow-fusion'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Activity className="inline mr-1.5 h-3.5 w-3.5" />
-              Frequencies
-            </button>
-            <button
-              onClick={() => setActiveTab('stereo')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all text-sm ${
-                activeTab === 'stereo'
-                  ? 'bg-gradient-to-r from-emerald-500 to-purple-500 text-white neon-glow-fusion'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Radio className="inline mr-1.5 h-3.5 w-3.5" />
-              Stereo
-            </button>
-            <button
-              onClick={() => setActiveTab('spectrogram')}
-              className={`px-3 py-1.5 rounded-lg font-medium transition-all text-sm ${
-                activeTab === 'spectrogram'
-                  ? 'bg-gradient-to-r from-emerald-500 to-purple-500 text-white neon-glow-fusion'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-              }`}
-            >
-              <Waves className="inline mr-1.5 h-3.5 w-3.5" />
-              Spectrogram
-            </button>
-          </div>
+    <div className="glass-panel rounded-3xl border border-slate-600 h-full overflow-hidden flex flex-col">
+      <div className="border-b border-slate-700/50 bg-slate-950/35 px-3 py-2">
+        <div className="grid grid-cols-4 gap-2">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                title={`${label} ${tab.label}`}
+                aria-label={`${label} ${tab.label}`}
+                className={`w-full min-w-0 rounded-xl border transition-all flex items-center justify-center gap-2 px-3 py-2 ${
+                  activeTab === tab.id
+                    ? 'border-slate-500/60 bg-gradient-to-r from-emerald-500 to-purple-500 text-white neon-glow-fusion'
+                    : 'border-transparent text-slate-300 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="text-xs font-semibold leading-none select-none">
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 px-3 pb-2 flex flex-col">
+      <div className="flex-1 min-h-0 px-3 py-2 flex flex-col overflow-hidden">
         {activeTab === 'levels' && (
-          <div className="flex-1">
-            <LevelMeter
-              label={label}
-              color={color}
-              isActive={true}
-              isPlaying={isPlaying}
-              audioLevels={audioLevels}
-              crossfadeVolume={crossfadeVolume}
-            />
-          </div>
+          <LevelMeter
+            label={label}
+            color={color}
+            isActive={true}
+            isPlaying={isPlaying}
+            audioLevels={audioLevels}
+            crossfadeVolume={crossfadeVolume}
+          />
         )}
 
         {activeTab === 'frequencies' && (
-          <div className="flex-1">
-            <FrequencyVisualizer
-              frequencyData={frequencyData}
-              isActive={true}
-              isPlaying={isPlaying}
-              crossfadeVolume={crossfadeVolume}
-            />
-          </div>
+          <FrequencyVisualizer
+            frequencyData={frequencyData}
+            isActive={true}
+            isPlaying={isPlaying}
+            crossfadeVolume={crossfadeVolume}
+          />
         )}
 
         {activeTab === 'stereo' && (
-          <div className="flex-1">
-            <StereoAnalyzer
-              stereoData={stereoData}
-              leftSamples={leftSamples}
-              rightSamples={rightSamples}
-              isActive={true}
-              isPlaying={isPlaying}
-              crossfadeVolume={crossfadeVolume}
-            />
-          </div>
+          <StereoAnalyzer
+            stereoData={stereoData}
+            leftSamples={leftSamples}
+            rightSamples={rightSamples}
+            isActive={true}
+            isPlaying={isPlaying}
+            crossfadeVolume={crossfadeVolume}
+          />
         )}
 
         {activeTab === 'spectrogram' && (
-          <div className="flex-1">
-            <SpectrogramAnalyzer
-              frequencyData={frequencyData}
-              isActive={true}
-              isPlaying={isPlaying}
-              crossfadeVolume={crossfadeVolume}
-            />
-          </div>
+          <SpectrogramAnalyzer
+            frequencyData={frequencyData}
+            isActive={true}
+            isPlaying={isPlaying}
+            crossfadeVolume={crossfadeVolume}
+          />
         )}
       </div>
     </div>

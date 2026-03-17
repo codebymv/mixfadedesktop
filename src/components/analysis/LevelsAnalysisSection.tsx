@@ -3,25 +3,26 @@ import { TrendingUp } from 'lucide-react';
 import { AudioLevels } from '../../utils/audioAnalysis';
 import { AnalysisSectionHeader } from './AnalysisSectionHeader';
 import { ComparisonRow } from './ComparisonRow';
+import { DualComparisonRow } from './DualComparisonRow';
 import { formatDb, linearToDb, getDelta } from '../../utils/analysisFormatters';
 
 interface LevelsAnalysisSectionProps {
-  trackAAudioLevels?: AudioLevels;
-  trackBAudioLevels?: AudioLevels;
+  trackADeckLevels?: AudioLevels;
+  trackBDeckLevels?: AudioLevels;
   isTransitioning?: boolean;
   isTrackAPlaying?: boolean;
   isTrackBPlaying?: boolean;
 }
 
 export function LevelsAnalysisSection({
-  trackAAudioLevels,
-  trackBAudioLevels,
+  trackADeckLevels,
+  trackBDeckLevels,
   isTransitioning = false,
   isTrackAPlaying = false,
   isTrackBPlaying = false
 }: LevelsAnalysisSectionProps) {
   return (
-    <div className="px-3 py-2 bg-slate-800 rounded-md">
+    <div className="bg-slate-800 rounded-md overflow-hidden flex">
       <AnalysisSectionHeader
         icon={TrendingUp}
         title="Levels"
@@ -30,57 +31,41 @@ export function LevelsAnalysisSection({
         isTrackBPlaying={isTrackBPlaying}
         gradientId="levelsGradient"
       />
-      
-      <div className="space-y-3">
+
+      <div className="flex-1 px-3 py-2 min-w-0">
+        <div className="space-y-3">
         {/* LUFS Comparison */}
         <ComparisonRow
-          label="Integrated LUFS"
-          valueA={trackAAudioLevels ? formatDb(trackAAudioLevels.lufs) : '-∞'}
-          valueB={trackBAudioLevels ? formatDb(trackBAudioLevels.lufs) : '-∞'}
-          deltaText={trackAAudioLevels && trackBAudioLevels ? 
-            getDelta(trackAAudioLevels.lufs, trackBAudioLevels.lufs).text + ' dB' : undefined}
-          deltaColor={trackAAudioLevels && trackBAudioLevels ? 
-            getDelta(trackAAudioLevels.lufs, trackBAudioLevels.lufs).color : undefined}
-          showDelta={!!(trackAAudioLevels && trackBAudioLevels)}
+          label="Integrated LUFS (dB)"
+          valueA={trackADeckLevels ? formatDb(trackADeckLevels.lufs) : '-∞'}
+          valueB={trackBDeckLevels ? formatDb(trackBDeckLevels.lufs) : '-∞'}
+          deltaText={trackADeckLevels && trackBDeckLevels ? 
+            getDelta(trackADeckLevels.lufs, trackBDeckLevels.lufs).text : undefined}
+          deltaColor={trackADeckLevels && trackBDeckLevels ? 
+            getDelta(trackADeckLevels.lufs, trackBDeckLevels.lufs).color : undefined}
+          showDelta={!!(trackADeckLevels && trackBDeckLevels)}
         />
 
         {/* RMS Comparison */}
         <ComparisonRow
-          label="RMS Levels"
-          valueA={trackAAudioLevels ? formatDb(linearToDb(trackAAudioLevels.rms)) : '-∞'}
-          valueB={trackBAudioLevels ? formatDb(linearToDb(trackBAudioLevels.rms)) : '-∞'}
-          deltaText={trackAAudioLevels && trackBAudioLevels ? 
-            getDelta(linearToDb(trackAAudioLevels.rms), linearToDb(trackBAudioLevels.rms)).text + ' dB' : undefined}
-          deltaColor={trackAAudioLevels && trackBAudioLevels ? 
-            getDelta(linearToDb(trackAAudioLevels.rms), linearToDb(trackBAudioLevels.rms)).color : undefined}
-          showDelta={!!(trackAAudioLevels && trackBAudioLevels)}
+          label="RMS Levels (dB)"
+          valueA={trackADeckLevels ? formatDb(linearToDb(trackADeckLevels.rms)) : '-∞'}
+          valueB={trackBDeckLevels ? formatDb(linearToDb(trackBDeckLevels.rms)) : '-∞'}
+          deltaText={trackADeckLevels && trackBDeckLevels ? 
+            getDelta(linearToDb(trackADeckLevels.rms), linearToDb(trackBDeckLevels.rms)).text : undefined}
+          deltaColor={trackADeckLevels && trackBDeckLevels ? 
+            getDelta(linearToDb(trackADeckLevels.rms), linearToDb(trackBDeckLevels.rms)).color : undefined}
+          showDelta={!!(trackADeckLevels && trackBDeckLevels)}
         />
 
         {/* Peak Levels */}
-        <div>
-          <div className="text-xs text-slate-400 mb-1">Peak Levels (L/R)</div>
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
-                  A
-                </span>
-                <span className="text-xs text-slate-300 font-mono">
-                  {trackAAudioLevels ? 
-                    `${formatDb(linearToDb(trackAAudioLevels.left))} / ${formatDb(linearToDb(trackAAudioLevels.right))}` : '-∞ / -∞'}
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-slate-300 font-mono">
-                  {trackBAudioLevels ? 
-                    `${formatDb(linearToDb(trackBAudioLevels.left))} / ${formatDb(linearToDb(trackBAudioLevels.right))}` : '-∞ / -∞'}
-                </span>
-                <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
-                  B
-                </span>
-              </div>
-            </div>
-          </div>
+        <DualComparisonRow
+          label="Peaks (L/R) (dB)"
+          valueA1={trackADeckLevels ? formatDb(linearToDb(trackADeckLevels.left)) : '-∞'}
+          valueA2={trackADeckLevels ? formatDb(linearToDb(trackADeckLevels.right)) : '-∞'}
+          valueB1={trackBDeckLevels ? formatDb(linearToDb(trackBDeckLevels.left)) : '-∞'}
+          valueB2={trackBDeckLevels ? formatDb(linearToDb(trackBDeckLevels.right)) : '-∞'}
+        />
         </div>
       </div>
     </div>

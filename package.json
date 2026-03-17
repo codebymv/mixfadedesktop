@@ -1,7 +1,7 @@
 {
   "name": "mixfade",
   "private": true,
-  "version": "0.9.5",
+  "version": "0.9.7",
   "description": "MixFade - Professional DJ mixing application with seamless crossfading capabilities",
   "author": "MixFade Team",
   "type": "module",
@@ -41,6 +41,8 @@
   },
   "dependencies": {
     "@formspree/react": "^3.0.0",
+    "butterchurn": "^2.6.7",
+    "butterchurn-presets": "^2.4.7",
     "lucide-react": "^0.344.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

@@ -58,28 +58,4 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcuts) {
   }, [handlers]);
 }
 
-// Common shortcuts for audio apps
-export const commonShortcuts = {
-  // File operations
-  'ctrl+o': 'Open File',
-  'ctrl+s': 'Save Project',
-  'ctrl+shift+s': 'Save As',
-  'ctrl+n': 'New Project',
-  
-  // Playback
-  'space': 'Play/Pause',
-  'ctrl+space': 'Stop',
-  'ctrl+r': 'Record',
-  
-  // View
-  'ctrl+b': 'Toggle Sidebar',
-  'f11': 'Toggle Fullscreen',
-  'ctrl+shift+p': 'Command Palette',
-  'ctrl+p': 'Quick Open',
-  
-  // Audio
-  'ctrl+m': 'Mute',
-  'ctrl+shift+m': 'Solo',
-  'ctrl+z': 'Undo',
-  'ctrl+y': 'Redo',
-};
+

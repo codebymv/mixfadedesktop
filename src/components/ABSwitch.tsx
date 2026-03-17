@@ -1,5 +1,5 @@
 import React from 'react';
-import { Shuffle, ArrowLeftRight } from 'lucide-react';
+import { ArrowLeftRight } from 'lucide-react';
 
 interface ABSwitchProps {
   activeTrack: 'A' | 'B' | 'both';
@@ -85,8 +85,6 @@ export function ABSwitch({
           <div className="text-xs text-audio-text-dim font-medium tracking-wider uppercase">
             Crossfade
           </div>
-          
-          
         </div>
         
         <button

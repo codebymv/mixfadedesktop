@@ -71,16 +71,16 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
       <canvas
         ref={leftCanvasRef}
         width={800}
-        height={60}
-        className="w-full h-16 bg-audio-bg rounded-t-2xl border border-b-0 border-slate-700/50 cursor-pointer hover:border-slate-600 transition-colors"
+        height={80}
+        className="w-full h-20 bg-audio-bg rounded-t-2xl border border-b-0 border-slate-700/50 cursor-pointer hover:border-slate-600 transition-colors"
         onClick={handleWaveformClick}
       />
       {/* Right Channel Waveform */}
       <canvas
         ref={rightCanvasRef}
         width={800}
-        height={60}
-        className="w-full h-16 bg-audio-bg rounded-b-2xl border border-t-0 border-slate-700/50 cursor-pointer hover:border-slate-600 transition-colors"
+        height={80}
+        className="w-full h-20 bg-audio-bg rounded-b-2xl border border-t-0 border-slate-700/50 cursor-pointer hover:border-slate-600 transition-colors"
         onClick={handleWaveformClick}
       />
     </>

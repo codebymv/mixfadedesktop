@@ -19,6 +19,15 @@ export const useAudioContext = () => {
   const leftAnalyser = useRef<AnalyserNode | null>(null);
   const rightAnalyser = useRef<AnalyserNode | null>(null);
   const isAudioContextSetup = useRef<boolean>(false);
+  const nodesSnapshot = useRef<AudioContextNodes>({
+    audioContext: null,
+    sourceNode: null,
+    analyserNode: null,
+    gainNode: null,
+    splitterNode: null,
+    leftAnalyser: null,
+    rightAnalyser: null,
+  });
 
   const setupAudioContext = useCallback(async (audioElement: HTMLAudioElement, volume: number, isMuted: boolean, crossfadeVolume: number) => {
     if (!audioElement || isAudioContextSetup.current) return;
@@ -157,15 +166,16 @@ export const useAudioContext = () => {
     console.log('Audio context resources cleaned up.');
   }, []);
 
-  const getNodes = useCallback((): AudioContextNodes => ({
-    audioContext: audioContext.current,
-    sourceNode: sourceNode.current,
-    analyserNode: analyserNode.current,
-    gainNode: gainNode.current,
-    splitterNode: splitterNode.current,
-    leftAnalyser: leftAnalyser.current,
-    rightAnalyser: rightAnalyser.current
-  }), []);
+  const getNodes = useCallback((): AudioContextNodes => {
+    nodesSnapshot.current.audioContext = audioContext.current;
+    nodesSnapshot.current.sourceNode = sourceNode.current;
+    nodesSnapshot.current.analyserNode = analyserNode.current;
+    nodesSnapshot.current.gainNode = gainNode.current;
+    nodesSnapshot.current.splitterNode = splitterNode.current;
+    nodesSnapshot.current.leftAnalyser = leftAnalyser.current;
+    nodesSnapshot.current.rightAnalyser = rightAnalyser.current;
+    return nodesSnapshot.current;
+  }, []);
 
   return {
     setupAudioContext,

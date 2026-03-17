@@ -23,6 +23,9 @@ export const useWaveform = () => {
     
     // Process left channel
     const leftProcessedData = new Float32Array(width * 2);
+    // Optimization: Don't read every single sample if there are too many per pixel
+    const step = Math.max(1, Math.floor(samplesPerPixel / 100)); 
+
     for (let x = 0; x < width; x++) {
       const startSample = x * samplesPerPixel;
       const endSample = Math.min(startSample + samplesPerPixel, samples);
@@ -30,7 +33,8 @@ export const useWaveform = () => {
       let min = 0;
       let max = 0;
       
-      for (let i = startSample; i < endSample; i++) {
+      // Use the step size to skip samples, drastically reducing iterations on long files
+      for (let i = startSample; i < endSample; i += step) {
         const sample = leftChannelData[i];
         if (sample < min) min = sample;
         if (sample > max) max = sample;
@@ -49,7 +53,7 @@ export const useWaveform = () => {
       let min = 0;
       let max = 0;
       
-      for (let i = startSample; i < endSample; i++) {
+      for (let i = startSample; i < endSample; i += step) {
         const sample = rightChannelData[i];
         if (sample < min) min = sample;
         if (sample > max) max = sample;

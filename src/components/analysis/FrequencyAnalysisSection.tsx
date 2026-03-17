@@ -22,7 +22,7 @@ export function FrequencyAnalysisSection({
 }: FrequencyAnalysisSectionProps) {
   if (!trackAFrequencyAnalysis && !trackBFrequencyAnalysis) {
     return (
-      <div className="px-3 py-2 bg-slate-800 rounded-md">
+      <div className="bg-slate-800 rounded-md overflow-hidden flex">
         <AnalysisSectionHeader
           icon={Activity}
           title="Frequencies"
@@ -31,7 +31,7 @@ export function FrequencyAnalysisSection({
           isTrackBPlaying={isTrackBPlaying}
           gradientId="frequenciesGradient"
         />
-        <div className="text-xs text-white/70">
+        <div className="flex-1 px-3 py-2 text-xs text-white/70 flex items-center min-w-0">
           No frequency data available
         </div>
       </div>
@@ -39,7 +39,7 @@ export function FrequencyAnalysisSection({
   }
 
   return (
-    <div className="px-3 py-2 bg-slate-800 rounded-md">
+    <div className="bg-slate-800 rounded-md overflow-hidden flex">
       <AnalysisSectionHeader
         icon={Activity}
         title="Frequencies"
@@ -49,38 +49,39 @@ export function FrequencyAnalysisSection({
         gradientId="frequenciesGradient"
       />
 
-      <div className="space-y-3">
-        {/* Bass Energy Comparison */}
+      <div className="flex-1 px-3 py-2 min-w-0">
+        <div className="space-y-3">
+        {/* Bass Comparison */}
         <ComparisonRow
-          label="Bass Energy (20-200 Hz)"
+          label="Bass (20-200 Hz) (dB)"
           valueA={trackAFrequencyAnalysis ? formatDb(trackAFrequencyAnalysis.bassEnergy) : '-∞'}
           valueB={trackBFrequencyAnalysis ? formatDb(trackBFrequencyAnalysis.bassEnergy) : '-∞'}
           deltaText={trackAFrequencyAnalysis && trackBFrequencyAnalysis ? 
-            getDelta(trackAFrequencyAnalysis.bassEnergy, trackBFrequencyAnalysis.bassEnergy).text + ' dB' : undefined}
+            getDelta(trackAFrequencyAnalysis.bassEnergy, trackBFrequencyAnalysis.bassEnergy).text : undefined}
           deltaColor={trackAFrequencyAnalysis && trackBFrequencyAnalysis ? 
             getDelta(trackAFrequencyAnalysis.bassEnergy, trackBFrequencyAnalysis.bassEnergy).color : undefined}
           showDelta={!!(trackAFrequencyAnalysis && trackBFrequencyAnalysis)}
         />
 
-        {/* Mid Energy Comparison */}
+        {/* Mid Comparison */}
         <ComparisonRow
-          label="Mid Energy (200-2k Hz)"
+          label="Mid (200-2k Hz) (dB)"
           valueA={trackAFrequencyAnalysis ? formatDb(trackAFrequencyAnalysis.midEnergy) : '-∞'}
           valueB={trackBFrequencyAnalysis ? formatDb(trackBFrequencyAnalysis.midEnergy) : '-∞'}
           deltaText={trackAFrequencyAnalysis && trackBFrequencyAnalysis ? 
-            getDelta(trackAFrequencyAnalysis.midEnergy, trackBFrequencyAnalysis.midEnergy).text + ' dB' : undefined}
+            getDelta(trackAFrequencyAnalysis.midEnergy, trackBFrequencyAnalysis.midEnergy).text : undefined}
           deltaColor={trackAFrequencyAnalysis && trackBFrequencyAnalysis ? 
             getDelta(trackAFrequencyAnalysis.midEnergy, trackBFrequencyAnalysis.midEnergy).color : undefined}
           showDelta={!!(trackAFrequencyAnalysis && trackBFrequencyAnalysis)}
         />
 
-        {/* High Energy Comparison */}
+        {/* High Comparison */}
         <ComparisonRow
-          label="High Energy (2k+ Hz)"
+          label="High (2k+ Hz) (dB)"
           valueA={trackAFrequencyAnalysis ? formatDb(trackAFrequencyAnalysis.highEnergy) : '-∞'}
           valueB={trackBFrequencyAnalysis ? formatDb(trackBFrequencyAnalysis.highEnergy) : '-∞'}
           deltaText={trackAFrequencyAnalysis && trackBFrequencyAnalysis ? 
-            getDelta(trackAFrequencyAnalysis.highEnergy, trackBFrequencyAnalysis.highEnergy).text + ' dB' : undefined}
+            getDelta(trackAFrequencyAnalysis.highEnergy, trackBFrequencyAnalysis.highEnergy).text : undefined}
           deltaColor={trackAFrequencyAnalysis && trackBFrequencyAnalysis ? 
             getDelta(trackAFrequencyAnalysis.highEnergy, trackBFrequencyAnalysis.highEnergy).color : undefined}
           showDelta={!!(trackAFrequencyAnalysis && trackBFrequencyAnalysis)}
@@ -88,7 +89,7 @@ export function FrequencyAnalysisSection({
 
         {/* Peak Frequency Comparison */}
         <div>
-          <div className="text-xs text-slate-400 mb-1">Peak Frequency</div>
+          <div className="text-xs text-slate-400 mb-1">Peak Freq (Hz)</div>
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -97,13 +98,13 @@ export function FrequencyAnalysisSection({
                 </span>
                 <span className="text-xs text-slate-300 font-mono">
                   {trackAFrequencyAnalysis ? 
-                    `${formatFrequency(trackAFrequencyAnalysis.peakFreq)} Hz` : '-- Hz'}
+                    formatFrequency(trackAFrequencyAnalysis.peakFreq) : '--'}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-xs text-slate-300 font-mono">
                   {trackBFrequencyAnalysis ? 
-                    `${formatFrequency(trackBFrequencyAnalysis.peakFreq)} Hz` : '-- Hz'}
+                    formatFrequency(trackBFrequencyAnalysis.peakFreq) : '--'}
                 </span>
                 <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
                   B
@@ -119,11 +120,12 @@ export function FrequencyAnalysisSection({
                   Δ {getFrequencyDelta(
                     trackAFrequencyAnalysis.peakFreq,
                     trackBFrequencyAnalysis.peakFreq
-                  ).text} Hz
+                  ).text}
                 </span>
               </div>
             )}
           </div>
+        </div>
         </div>
       </div>
     </div>

@@ -31,7 +31,7 @@ export function SpectrogramAnalysisSection({
 }: SpectrogramAnalysisSectionProps) {
   if (!trackASpectrogramAnalysis && !trackBSpectrogramAnalysis) {
     return (
-      <div className="px-3 py-2 bg-slate-800 rounded-md">
+      <div className="bg-slate-800 rounded-md overflow-hidden flex">
         <AnalysisSectionHeader
           icon={Waves}
           title="Spectrogram"
@@ -40,7 +40,7 @@ export function SpectrogramAnalysisSection({
           isTrackBPlaying={isTrackBPlaying}
           gradientId="spectrogramGradient"
         />
-        <div className="text-xs text-white/70">
+        <div className="flex-1 px-3 py-2 text-xs text-white/70 flex items-center min-w-0">
           No spectrogram data available
         </div>
       </div>
@@ -48,7 +48,7 @@ export function SpectrogramAnalysisSection({
   }
 
   return (
-    <div className="px-3 py-2 bg-slate-800 rounded-md">
+    <div className="bg-slate-800 rounded-md overflow-hidden flex">
       <AnalysisSectionHeader
         icon={Waves}
         title="Spectrogram"
@@ -58,26 +58,27 @@ export function SpectrogramAnalysisSection({
         gradientId="spectrogramGradient"
       />
 
-      <div className="space-y-3">
+      <div className="flex-1 px-3 py-2 min-w-0">
+        <div className="space-y-3">
         {/* Brightness Comparison */}
         <div>
-          <div className="text-xs text-slate-400 mb-1">Brightness</div>
+          <div className="text-xs text-slate-400 mb-1">Brightness (Hz)</div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
                 A
               </span>
-              <span className={`text-xs font-mono ${trackASpectrogramAnalysis ? 
+              <span className={`text-[10px] font-mono ${trackASpectrogramAnalysis ? 
                 getBrightnessColor(trackASpectrogramAnalysis.brightness) : 'text-slate-300'}`}>
                 {trackASpectrogramAnalysis ? 
-                  formatBrightness(trackASpectrogramAnalysis.brightness) : '-- Hz'}
+                  formatBrightness(trackASpectrogramAnalysis.brightness) : '--'}
               </span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className={`text-xs font-mono ${trackBSpectrogramAnalysis ? 
+              <span className={`text-[10px] font-mono ${trackBSpectrogramAnalysis ? 
                 getBrightnessColor(trackBSpectrogramAnalysis.brightness) : 'text-slate-300'}`}>
                 {trackBSpectrogramAnalysis ? 
-                  formatBrightness(trackBSpectrogramAnalysis.brightness) : '-- Hz'}
+                  formatBrightness(trackBSpectrogramAnalysis.brightness) : '--'}
               </span>
               <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
                 B
@@ -86,14 +87,14 @@ export function SpectrogramAnalysisSection({
           </div>
           {trackASpectrogramAnalysis && trackBSpectrogramAnalysis && (
             <div className="text-center mt-1">
-              <span className={`text-xs font-mono ${getSpectrogramDelta(
+              <span className={`text-[10px] font-mono ${getSpectrogramDelta(
                 trackASpectrogramAnalysis.brightness,
                 trackBSpectrogramAnalysis.brightness
               ).color}`}>
                 Δ {getSpectrogramDelta(
                   trackASpectrogramAnalysis.brightness,
                   trackBSpectrogramAnalysis.brightness
-                ).text} Hz
+                ).text}
               </span>
             </div>
           )}
@@ -101,23 +102,23 @@ export function SpectrogramAnalysisSection({
 
         {/* Dynamic Range Comparison */}
         <div>
-          <div className="text-xs text-slate-400 mb-1">Dynamic Range</div>
+          <div className="text-xs text-slate-400 mb-1">Dynamic Range (dB)</div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
                 A
               </span>
-              <span className={`text-xs font-mono ${trackASpectrogramAnalysis ? 
+              <span className={`text-[10px] font-mono ${trackASpectrogramAnalysis ? 
                 getDynamicRangeColor(trackASpectrogramAnalysis.dynamicRange) : 'text-slate-300'}`}>
                 {trackASpectrogramAnalysis ? 
-                  `${trackASpectrogramAnalysis.dynamicRange.toFixed(1)} dB` : '-- dB'}
+                  `${trackASpectrogramAnalysis.dynamicRange.toFixed(1)}` : '--'}
               </span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className={`text-xs font-mono ${trackBSpectrogramAnalysis ? 
+              <span className={`text-[10px] font-mono ${trackBSpectrogramAnalysis ? 
                 getDynamicRangeColor(trackBSpectrogramAnalysis.dynamicRange) : 'text-slate-300'}`}>
                 {trackBSpectrogramAnalysis ? 
-                  `${trackBSpectrogramAnalysis.dynamicRange.toFixed(1)} dB` : '-- dB'}
+                  `${trackBSpectrogramAnalysis.dynamicRange.toFixed(1)}` : '--'}
               </span>
               <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
                 B
@@ -126,14 +127,14 @@ export function SpectrogramAnalysisSection({
           </div>
           {trackASpectrogramAnalysis && trackBSpectrogramAnalysis && (
             <div className="text-center mt-1">
-              <span className={`text-xs font-mono ${getDelta(
+              <span className={`text-[10px] font-mono ${getDelta(
                 trackASpectrogramAnalysis.dynamicRange,
                 trackBSpectrogramAnalysis.dynamicRange
               ).color}`}>
                 Δ {getDelta(
                   trackASpectrogramAnalysis.dynamicRange,
                   trackBSpectrogramAnalysis.dynamicRange
-                ).text} dB
+                ).text}
               </span>
             </div>
           )}
@@ -141,23 +142,23 @@ export function SpectrogramAnalysisSection({
 
         {/* Activity Comparison */}
         <div>
-          <div className="text-xs text-slate-400 mb-1">Activity</div>
+          <div className="text-xs text-slate-400 mb-1">Activity (%)</div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
                 A
               </span>
-              <span className={`text-xs font-mono ${trackASpectrogramAnalysis ? 
+              <span className={`text-[10px] font-mono ${trackASpectrogramAnalysis ? 
                 getActivityColor(trackASpectrogramAnalysis.activity) : 'text-slate-300'}`}>
                 {trackASpectrogramAnalysis ? 
-                  formatActivity(trackASpectrogramAnalysis.activity) : '--%'}
+                  formatActivity(trackASpectrogramAnalysis.activity) : '--'}
               </span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className={`text-xs font-mono ${trackBSpectrogramAnalysis ? 
+              <span className={`text-[10px] font-mono ${trackBSpectrogramAnalysis ? 
                 getActivityColor(trackBSpectrogramAnalysis.activity) : 'text-slate-300'}`}>
                 {trackBSpectrogramAnalysis ? 
-                  formatActivity(trackBSpectrogramAnalysis.activity) : '--%'}
+                  formatActivity(trackBSpectrogramAnalysis.activity) : '--'}
               </span>
               <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
                 B
@@ -166,14 +167,14 @@ export function SpectrogramAnalysisSection({
           </div>
           {trackASpectrogramAnalysis && trackBSpectrogramAnalysis && (
             <div className="text-center mt-1">
-              <span className={`text-xs font-mono ${getDelta(
+              <span className={`text-[10px] font-mono ${getDelta(
                 trackASpectrogramAnalysis.activity * 100,
                 trackBSpectrogramAnalysis.activity * 100
               ).color}`}>
                 Δ {getDelta(
                   trackASpectrogramAnalysis.activity * 100,
                   trackBSpectrogramAnalysis.activity * 100
-                ).text}%
+                ).text}
               </span>
             </div>
           )}
@@ -187,14 +188,14 @@ export function SpectrogramAnalysisSection({
               <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
                 A
               </span>
-              <span className={`text-xs font-mono ${trackASpectrogramAnalysis ? 
+              <span className={`text-[10px] font-mono ${trackASpectrogramAnalysis ? 
                 getToneVsNoiseColor(trackASpectrogramAnalysis.toneVsNoise) : 'text-slate-300'}`}>
                 {trackASpectrogramAnalysis ? 
                   formatToneVsNoise(trackASpectrogramAnalysis.toneVsNoise) : '----'}
               </span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className={`text-xs font-mono ${trackBSpectrogramAnalysis ? 
+              <span className={`text-[10px] font-mono ${trackBSpectrogramAnalysis ? 
                 getToneVsNoiseColor(trackBSpectrogramAnalysis.toneVsNoise) : 'text-slate-300'}`}>
                 {trackBSpectrogramAnalysis ? 
                   formatToneVsNoise(trackBSpectrogramAnalysis.toneVsNoise) : '----'}
@@ -208,19 +209,19 @@ export function SpectrogramAnalysisSection({
 
         {/* High Frequency Content Comparison */}
         <div>
-          <div className="text-xs text-slate-400 mb-1">HF Content</div>
+          <div className="text-xs text-slate-400 mb-1">HF Content (Hz)</div>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
                 A
               </span>
-              <span className="text-xs font-mono text-slate-300">
+              <span className="text-[10px] font-mono text-slate-300">
                 {trackASpectrogramAnalysis ? 
                   formatBrightness(trackASpectrogramAnalysis.highFreqContent).replace(' Hz', '') : '--'}
               </span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-xs font-mono text-slate-300">
+              <span className="text-[10px] font-mono text-slate-300">
                 {trackBSpectrogramAnalysis ? 
                   formatBrightness(trackBSpectrogramAnalysis.highFreqContent).replace(' Hz', '') : '--'}
               </span>
@@ -229,6 +230,7 @@ export function SpectrogramAnalysisSection({
               </span>
             </div>
           </div>
+        </div>
         </div>
       </div>
     </div>

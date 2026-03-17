@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { SettingsProvider, useSettings } from '../../src/contexts/SettingsContext';
-import { DEFAULT_SETTINGS, AppSettings } from '../../src/types/settings';
+import { DEFAULT_SETTINGS } from '../../src/types/settings';
 import App from '../../src/App';
 
 // Mock localStorage
@@ -124,7 +124,7 @@ const TestSettingsComponent: React.FC = () => {
       </button>
       
       <div data-testid="get-setting-result">
-        {getSetting('ui', 'waveformColorA')}
+        {getSetting('ui', 'colorThemeId')}
       </div>
     </div>
   );
@@ -178,6 +178,22 @@ describe('State Management & Settings', () => {
 
         expect(screen.getByTestId('current-theme')).toHaveTextContent('light');
         expect(screen.getByTestId('crossfade-time')).toHaveTextContent('3.5');
+      });
+
+      it('should merge missing nested settings with defaults', () => {
+        mockLocalStorage.setItem('mixfade-settings', JSON.stringify({
+          ui: { theme: 'light' }
+        }));
+
+        render(
+          <SettingsProvider>
+            <TestSettingsComponent />
+          </SettingsProvider>
+        );
+
+        expect(screen.getByTestId('current-theme')).toHaveTextContent('light');
+        expect(screen.getByTestId('get-setting-result')).toHaveTextContent(DEFAULT_SETTINGS.ui.colorThemeId);
+        expect(screen.getByTestId('crossfade-time')).toHaveTextContent('2.5');
       });
 
       it('should handle corrupted localStorage data gracefully', () => {
@@ -310,13 +326,13 @@ describe('State Management & Settings', () => {
           return (
             <div>
               <div data-testid="sidebar-collapsed">{settings.ui.sidebarDefaultCollapsed.toString()}</div>
-              <div data-testid="waveform-color-a">{settings.ui.waveformColorA}</div>
+              <div data-testid="color-theme-id">{settings.ui.colorThemeId}</div>
               <div data-testid="meter-style">{settings.ui.meterStyle}</div>
               <button 
                 data-testid="update-ui"
                 onClick={() => {
                   updateSetting('ui', 'sidebarDefaultCollapsed', true);
-                  updateSetting('ui', 'waveformColorA', '#ff0000');
+                  updateSetting('ui', 'colorThemeId', 'sunset-cyan');
                   updateSetting('ui', 'meterStyle', 'vu');
                 }}
               >
@@ -336,7 +352,7 @@ describe('State Management & Settings', () => {
 
         await waitFor(() => {
           expect(screen.getByTestId('sidebar-collapsed')).toHaveTextContent('true');
-          expect(screen.getByTestId('waveform-color-a')).toHaveTextContent('#ff0000');
+          expect(screen.getByTestId('color-theme-id')).toHaveTextContent('sunset-cyan');
           expect(screen.getByTestId('meter-style')).toHaveTextContent('vu');
         });
       });

@@ -3,6 +3,7 @@ import { Radio } from 'lucide-react';
 import { StereoAnalysis } from '../../utils/audioAnalysis';
 import { AnalysisSectionHeader } from './AnalysisSectionHeader';
 import { ComparisonRow } from './ComparisonRow';
+import { DualComparisonRow } from './DualComparisonRow';
 import { formatCorrelation, formatStereoWidth, formatDb, linearToDb, getDelta, getStereoPercent, getLevelColor } from '../../utils/analysisFormatters';
 
 interface StereoAnalysisSectionProps {
@@ -22,7 +23,7 @@ export function StereoAnalysisSection({
 }: StereoAnalysisSectionProps) {
   if (!trackAStereoAnalysis && !trackBStereoAnalysis) {
     return (
-      <div className="px-3 py-2 bg-slate-800 rounded-md">
+      <div className="bg-slate-800 rounded-md overflow-hidden flex">
         <AnalysisSectionHeader
           icon={Radio}
           title="Stereo"
@@ -31,7 +32,7 @@ export function StereoAnalysisSection({
           isTrackBPlaying={isTrackBPlaying}
           gradientId="stereoGradient"
         />
-        <div className="text-xs text-white/70">
+        <div className="flex-1 px-3 py-2 text-xs text-white/70 flex items-center min-w-0">
           No stereo data available
         </div>
       </div>
@@ -39,7 +40,7 @@ export function StereoAnalysisSection({
   }
 
   return (
-    <div className="px-3 py-2 bg-slate-800 rounded-md">
+    <div className="bg-slate-800 rounded-md overflow-hidden flex">
       <AnalysisSectionHeader
         icon={Radio}
         title="Stereo"
@@ -49,10 +50,11 @@ export function StereoAnalysisSection({
         gradientId="stereoGradient"
       />
 
-      <div className="space-y-3">
+      <div className="flex-1 px-3 py-2 min-w-0">
+        <div className="space-y-3">
         {/* Phase Correlation Comparison */}
         <ComparisonRow
-          label="Phase Correlation"
+          label="Phase Corr"
           valueA={trackAStereoAnalysis ? formatCorrelation(trackAStereoAnalysis.phaseCorrelation) : '--'}
           valueB={trackBStereoAnalysis ? formatCorrelation(trackBStereoAnalysis.phaseCorrelation) : '--'}
           deltaText={trackAStereoAnalysis && trackBStereoAnalysis ? 
@@ -64,9 +66,9 @@ export function StereoAnalysisSection({
 
         {/* Stereo Width Comparison */}
         <ComparisonRow
-          label="Stereo Width"
-          valueA={trackAStereoAnalysis ? formatStereoWidth(trackAStereoAnalysis.stereoWidth) : '--%'}
-          valueB={trackBStereoAnalysis ? formatStereoWidth(trackBStereoAnalysis.stereoWidth) : '--%'}
+          label="Stereo Width (%)"
+          valueA={trackAStereoAnalysis ? formatStereoWidth(trackAStereoAnalysis.stereoWidth) : '--'}
+          valueB={trackBStereoAnalysis ? formatStereoWidth(trackBStereoAnalysis.stereoWidth) : '--'}
           deltaText={trackAStereoAnalysis && trackBStereoAnalysis ? 
             getStereoPercent(trackAStereoAnalysis.stereoWidth, trackBStereoAnalysis.stereoWidth).text : undefined}
           deltaColor={trackAStereoAnalysis && trackBStereoAnalysis ? 
@@ -75,40 +77,17 @@ export function StereoAnalysisSection({
         />
 
         {/* Mid/Side Levels */}
-        <div>
-          <div className="text-xs text-slate-400 mb-1">Mid/Side Levels</div>
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
-                  A
-                </span>
-                <span className="text-xs font-mono">
-                  <span className={trackAStereoAnalysis ? getLevelColor(linearToDb(trackAStereoAnalysis.midLevel)) : 'text-slate-500'}>
-                    {trackAStereoAnalysis ? formatDb(linearToDb(trackAStereoAnalysis.midLevel)) : '-∞'}
-                  </span>
-                  <span className="text-slate-500"> / </span>
-                  <span className={trackAStereoAnalysis ? getLevelColor(linearToDb(trackAStereoAnalysis.sideLevel)) : 'text-slate-500'}>
-                    {trackAStereoAnalysis ? formatDb(linearToDb(trackAStereoAnalysis.sideLevel)) : '-∞'}
-                  </span>
-                </span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xs font-mono">
-                  <span className={trackBStereoAnalysis ? getLevelColor(linearToDb(trackBStereoAnalysis.midLevel)) : 'text-slate-500'}>
-                    {trackBStereoAnalysis ? formatDb(linearToDb(trackBStereoAnalysis.midLevel)) : '-∞'}
-                  </span>
-                  <span className="text-slate-500"> / </span>
-                  <span className={trackBStereoAnalysis ? getLevelColor(linearToDb(trackBStereoAnalysis.sideLevel)) : 'text-slate-500'}>
-                    {trackBStereoAnalysis ? formatDb(linearToDb(trackBStereoAnalysis.sideLevel)) : '-∞'}
-                  </span>
-                </span>
-                <span className="text-xs px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
-                  B
-                </span>
-              </div>
-            </div>
-          </div>
+        <DualComparisonRow
+          label="M/S Levels (dB)"
+          valueA1={trackAStereoAnalysis ? formatDb(linearToDb(trackAStereoAnalysis.midLevel)) : '-∞'}
+          valueA2={trackAStereoAnalysis ? formatDb(linearToDb(trackAStereoAnalysis.sideLevel)) : '-∞'}
+          valueB1={trackBStereoAnalysis ? formatDb(linearToDb(trackBStereoAnalysis.midLevel)) : '-∞'}
+          valueB2={trackBStereoAnalysis ? formatDb(linearToDb(trackBStereoAnalysis.sideLevel)) : '-∞'}
+          colorA1={trackAStereoAnalysis ? getLevelColor(linearToDb(trackAStereoAnalysis.midLevel)) : undefined}
+          colorA2={trackAStereoAnalysis ? getLevelColor(linearToDb(trackAStereoAnalysis.sideLevel)) : undefined}
+          colorB1={trackBStereoAnalysis ? getLevelColor(linearToDb(trackBStereoAnalysis.midLevel)) : undefined}
+          colorB2={trackBStereoAnalysis ? getLevelColor(linearToDb(trackBStereoAnalysis.sideLevel)) : undefined}
+        />
         </div>
       </div>
     </div>

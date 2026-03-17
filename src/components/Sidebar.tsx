@@ -1,4 +1,3 @@
-import React from 'react';
 import { ChevronLeft } from 'lucide-react';
 import { activities } from './ActivityBar';
 import { AudioLevels, StereoAnalysis } from '../utils/audioAnalysis';
@@ -8,16 +7,8 @@ import { FilesPanel } from './sidebar/FilesPanel';
 import { AnalysisPanel } from './sidebar/AnalysisPanel';
 import { SettingsPanel } from './sidebar/SettingsPanel';
 import { HelpPanel } from './sidebar/HelpPanel';
-
-// Recent files interface - session-only (cleared on app restart)
-interface RecentFile {
-  id: string;
-  name: string;
-  size: string;
-  lastModified: string;
-  lastUsedSide: 'A' | 'B';
-  file?: File; // Keep File object in memory during session
-}
+import { VisualizerPanel } from './sidebar/VisualizerPanel';
+import type { RecentFile } from '../types/recentFile';
 
 interface SidebarProps {
   activeActivity: string;
@@ -26,13 +17,14 @@ interface SidebarProps {
   className?: string;
   recentFiles?: RecentFile[];
   onLoadFileFromRecent?: (recentFile: RecentFile) => void;
+  onAddDroppedFiles?: (files: File[]) => void;
   onLoadToA?: (file: File | null) => void;
   onLoadToB?: (file: File | null) => void;
   // Analysis data props
   trackAFile?: File;
   trackBFile?: File;
-  trackAAudioLevels?: AudioLevels;
-  trackBAudioLevels?: AudioLevels;
+  trackADeckLevels?: AudioLevels;
+  trackBDeckLevels?: AudioLevels;
   trackAStereoData?: StereoAnalysis;
   trackBStereoData?: StereoAnalysis;
   trackAFrequencyData?: Float32Array;
@@ -43,6 +35,10 @@ interface SidebarProps {
   isTransitioning?: boolean;
   volumeA?: number;
   volumeB?: number;
+  // Visualizer seed
+  visualizerSeed?: number;
+  onRollVisualizerSeed?: () => void;
+  onResetVisualizerSeed?: () => void;
 }
 
 export function Sidebar({
@@ -52,13 +48,14 @@ export function Sidebar({
   className = '',
   recentFiles = [],
   onLoadFileFromRecent,
+  onAddDroppedFiles,
   onLoadToA,
   onLoadToB,
   // Analysis data
   trackAFile,
   trackBFile,
-  trackAAudioLevels,
-  trackBAudioLevels,
+  trackADeckLevels,
+  trackBDeckLevels,
   trackAStereoData,
   trackBStereoData,
   trackAFrequencyData,
@@ -68,7 +65,11 @@ export function Sidebar({
   // Crossfade data
   isTransitioning = false,
   volumeA = 1,
-  volumeB = 0
+  volumeB = 0,
+  // Visualizer seed
+  visualizerSeed = 42,
+  onRollVisualizerSeed,
+  onResetVisualizerSeed
 }: SidebarProps) {
   // Get current activity info
   const currentActivity = activities.find(activity => activity.id === activeActivity);
@@ -81,6 +82,7 @@ export function Sidebar({
           <FilesPanel
             recentFiles={recentFiles}
             onLoadFileFromRecent={onLoadFileFromRecent}
+            onAddDroppedFiles={onAddDroppedFiles}
             onLoadToA={onLoadToA}
             onLoadToB={onLoadToB}
           />
@@ -90,8 +92,8 @@ export function Sidebar({
           <AnalysisPanel
             trackAFile={trackAFile}
             trackBFile={trackBFile}
-            trackAAudioLevels={trackAAudioLevels}
-            trackBAudioLevels={trackBAudioLevels}
+            trackADeckLevels={trackADeckLevels}
+            trackBDeckLevels={trackBDeckLevels}
             trackAStereoData={trackAStereoData}
             trackBStereoData={trackBStereoData}
             trackAFrequencyData={trackAFrequencyData}
@@ -101,6 +103,14 @@ export function Sidebar({
             isTransitioning={isTransitioning}
             volumeA={volumeA}
             volumeB={volumeB}
+          />
+        );
+      case 'visualizer':
+        return (
+          <VisualizerPanel
+            seed={visualizerSeed}
+            onRollSeed={onRollVisualizerSeed ?? (() => {})}
+            onResetSeed={onResetVisualizerSeed ?? (() => {})}
           />
         );
       case 'settings':
@@ -122,12 +132,7 @@ export function Sidebar({
 
   return (
     <div 
-      className={`w-56 border-r border-slate-700 flex flex-col transition-all duration-300 ${className}`}
-      style={{
-        background: `linear-gradient(rgba(15, 23, 42, 0.6), rgba(15, 23, 42, 0.6)), linear-gradient(to right, rgb(16, 185, 129), rgb(168, 85, 247))`,
-        backgroundSize: '300% 100%',
-        backgroundPosition: '50% 0%'
-      }}
+      className={`w-56 border-r border-slate-700 flex flex-col transition-all duration-300 theme-sidebar-shell-background ${className}`}
     >
       {/* Header */}
       <div className="h-12 flex items-center justify-between px-4 border-b border-slate-700 bg-slate-800/50">

@@ -47,8 +47,8 @@ node scripts/upload-nsis-installer.js
 ## Deployment Results
 
 ### Build Output
-- **Version**: 0.9.4
-- **Installer**: `MixFade Setup 0.9.4.exe`
+- **Version**: 0.9.7
+- **Installer**: `MixFade Setup 0.9.7.exe`
 - **Size**: 80.90 MB
 - **Build Time**: ~2 minutes
 

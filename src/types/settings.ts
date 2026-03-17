@@ -1,3 +1,6 @@
+import type { ColorThemeId } from '../theme/colorThemes';
+import { DEFAULT_COLOR_THEME_ID } from '../theme/colorThemes';
+
 // Settings interface based on actual app functionality
 export interface AppSettings {
   // Audio Analysis Settings (based on audioAnalysis.ts)
@@ -13,8 +16,7 @@ export interface AppSettings {
   ui: {
     theme: 'dark' | 'light' | 'auto';
     sidebarDefaultCollapsed: boolean;
-    waveformColorA: string;
-    waveformColorB: string;
+    colorThemeId: ColorThemeId;
     meterStyle: 'vu' | 'ppm' | 'digital';
     showTruePeakMeters: boolean;
   };
@@ -49,9 +51,7 @@ export interface AppSettings {
     playPause: string;
     crossfadeAB: string;
     toggleSidebar: string;
-    openFile: string;
-    switchToTrackA: string;
-    switchToTrackB: string;
+    exitVisualizer: string;
   };
 }
 
@@ -67,8 +67,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   ui: {
     theme: 'dark',
     sidebarDefaultCollapsed: false,
-    waveformColorA: '#10b981', // Current green theme
-    waveformColorB: '#8b5cf6', // Current purple theme
+    colorThemeId: DEFAULT_COLOR_THEME_ID,
     meterStyle: 'digital',
     showTruePeakMeters: true
   },
@@ -95,8 +94,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
     playPause: 'Space',
     crossfadeAB: 'Tab',
     toggleSidebar: 'Ctrl+B',
-    openFile: 'Ctrl+O',
-    switchToTrackA: '1',
-    switchToTrackB: '2'
+    exitVisualizer: 'Escape',
   }
 }; 

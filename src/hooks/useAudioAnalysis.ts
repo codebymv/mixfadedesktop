@@ -16,8 +16,6 @@ export const useAudioAnalysis = (
   callbacks: AudioAnalysisCallbacks
 ) => {
   const analysisInterval = useRef<NodeJS.Timeout | null>(null);
-  const animationFrame = useRef<number | null>(null);
-
   const updateAnalysisData = useCallback(() => {
     const { analyserNode, leftAnalyser, rightAnalyser } = getNodes();
     const { onAudioLevels, onFrequencyData, onStereoData } = callbacks;
@@ -129,10 +127,6 @@ export const useAudioAnalysis = (
     if (analysisInterval.current) {
       clearInterval(analysisInterval.current);
       analysisInterval.current = null;
-    }
-    if (animationFrame.current) {
-      cancelAnimationFrame(animationFrame.current);
-      animationFrame.current = null;
     }
   }, []);
 

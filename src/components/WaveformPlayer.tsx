@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
+import { Link as LinkIcon } from 'lucide-react';
 import { AudioLevels, StereoAnalysis } from '../utils/audioAnalysis';
 import { useSettings } from '../contexts/SettingsContext';
-import { useAudioContext } from '../hooks/useAudioContext';
+import { AudioContextNodes, useAudioContext } from '../hooks/useAudioContext';
 import { useWaveform } from '../hooks/useWaveform';
 import { useAudioAnalysis } from '../hooks/useAudioAnalysis';
 import { useAudioMetadata, AudioMetadata } from '../hooks/useAudioMetadata';
+import { useColorTheme } from '../hooks/useColorTheme';
+import { getDeckTheme } from '../theme/colorThemes';
 import { WaveformDisplay } from './waveform/WaveformDisplay';
 import { PlaybackControls } from './waveform/PlaybackControls';
 import { AudioMetadataDisplay } from './waveform/AudioMetadataDisplay';
@@ -20,6 +23,13 @@ interface WaveformPlayerProps {
   onFrequencyData?: (data: Float32Array) => void;
   onStereoData?: (data: StereoAnalysis, leftSamples?: Float32Array, rightSamples?: Float32Array) => void;
   crossfadeVolume?: number; // Volume from crossfade control (0-1)
+  deckVolume?: number; // Hoisted persistent deck volume
+  onDeckVolumeChange?: (volume: number) => void;
+  isMuted?: boolean; // Hoisted persistent mute state
+  onMuteChange?: (isMuted: boolean) => void;
+  isLinkedPlayback?: boolean; // True if A/B sync is on
+  onTimeSeek?: (time: number) => void; // Emits to parent when scrubbed
+  onToggleLinkedPlayback?: () => void; // Toggle Link Playback
 }
 
 export interface WaveformPlayerRef {
@@ -35,6 +45,7 @@ export interface WaveformPlayerRef {
   mute: () => void;
   unmute: () => void;
   isMuted: () => boolean;
+  getAudioNodes: () => AudioContextNodes;
 }
 
 export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>((
@@ -46,12 +57,20 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     onAudioLevels,
     onFrequencyData,
     onStereoData,
-    crossfadeVolume = 1
+    crossfadeVolume = 1,
+    deckVolume,
+    onDeckVolumeChange,
+    isMuted: externalIsMuted,
+    onMuteChange,
+    isLinkedPlayback,
+    onTimeSeek,
+    onToggleLinkedPlayback
   },
   ref
 ) => {
   // Get settings for configurable analysis update rate
   const { settings } = useSettings();
+  const activeColorTheme = useColorTheme();
 
   // Hooks for modular functionality
   const audioContext = useAudioContext();
@@ -67,30 +86,36 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1.0);
-  const [isMuted, setIsMuted] = useState(false);
+  const [internalVolume, setInternalVolume] = useState(1.0);
+  const [internalIsMuted, setInternalIsMuted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [canPlay, setCanPlay] = useState(false);
   const [audioMetadata, setAudioMetadata] = useState<AudioMetadata | null>(null);
 
-  // Color configuration
-  const colorConfig = {
-    green: {
-      waveColor: '#10b981',
-      bgColor: 'bg-emerald-500',
-      hoverColor: 'hover:bg-emerald-600',
-      textColor: 'text-emerald-400'
-    },
-    purple: {
-      waveColor: '#8b5cf6',
-      bgColor: 'bg-purple-500',
-      hoverColor: 'hover:bg-purple-600',
-      textColor: 'text-purple-400'
-    }
-  };
+  const volume = deckVolume !== undefined ? deckVolume : internalVolume;
+  const isMuted = externalIsMuted !== undefined ? externalIsMuted : internalIsMuted;
 
-  const config = colorConfig[color];
+  // Color configuration
+  const config = useMemo(() => {
+    const deckTheme = getDeckTheme(activeColorTheme, color);
+
+    return {
+      waveColor: deckTheme.base,
+      bgColor: color === 'green' ? 'bg-emerald-500' : 'bg-purple-500',
+      lightBgColor: color === 'green' ? 'bg-emerald-500/20' : 'bg-purple-500/20',
+      hoverColor: color === 'green' ? 'hover:bg-emerald-600' : 'hover:bg-purple-600',
+      textColor: color === 'green' ? 'text-emerald-400' : 'text-purple-400',
+      borderColor: color === 'green' ? 'border-emerald-500/50' : 'border-purple-500/50',
+      glowShadow: color === 'green' ? 'neon-glow-green' : 'neon-glow-purple'
+    };
+  }, [activeColorTheme, color]);
+
+  // File parsing
+  const extension = file.name.split('.').pop()?.toUpperCase() || 'AUDIO';
+  const baseName = file.name.includes('.') 
+    ? file.name.substring(0, file.name.lastIndexOf('.')) 
+    : file.name;
 
   // Memoize callbacks to prevent infinite loops
   const analysisCallbacks = useMemo(() => ({
@@ -311,12 +336,20 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
 
   const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
-    setVolume(newVolume);
-  }, []);
+    if (onDeckVolumeChange) {
+      onDeckVolumeChange(newVolume);
+    } else {
+      setInternalVolume(newVolume);
+    }
+  }, [onDeckVolumeChange]);
 
   const toggleMute = useCallback(() => {
-    setIsMuted(!isMuted);
-  }, [isMuted]);
+    if (onMuteChange) {
+      onMuteChange(!isMuted);
+    } else {
+      setInternalIsMuted(!isMuted);
+    }
+  }, [isMuted, onMuteChange]);
 
   const handleWaveformClick = useCallback((clickTime: number) => {
     if (!canPlay || duration === 0) return;
@@ -324,8 +357,13 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     if (audioRef.current) {
       audioRef.current.currentTime = clickTime;
       setCurrentTime(clickTime);
+
+      // If linked playback is enabled, notify parent
+      if (isLinkedPlayback && onTimeSeek) {
+        onTimeSeek(clickTime);
+      }
     }
-  }, [canPlay, duration]);
+  }, [canPlay, duration, isLinkedPlayback, onTimeSeek]);
 
   // Initialize audio when file changes
   useEffect(() => {
@@ -445,13 +483,24 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     getDuration: () => duration,
     isPlaying: () => isPlaying,
     setVolume: (vol: number) => {
-      setVolume(vol);
+      if (onDeckVolumeChange) {
+        onDeckVolumeChange(vol);
+      } else {
+        setInternalVolume(vol);
+      }
     },
     getVolume: () => volume,
-    mute: () => setIsMuted(true),
-    unmute: () => setIsMuted(false),
-    isMuted: () => isMuted
-  }), [togglePlayPause, currentTime, duration, isPlaying, volume, isMuted, canPlay]);
+    mute: () => {
+      if (onMuteChange) onMuteChange(true);
+      else setInternalIsMuted(true);
+    },
+    unmute: () => {
+      if (onMuteChange) onMuteChange(false);
+      else setInternalIsMuted(false);
+    },
+    isMuted: () => isMuted,
+    getAudioNodes: () => audioContext.getNodes()
+  }), [togglePlayPause, currentTime, duration, isPlaying, volume, isMuted, canPlay, onDeckVolumeChange, onMuteChange]);
   // Notify parent of play state changes
   useEffect(() => {
     if (onPlayStateChange) {
@@ -480,7 +529,7 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
   }
 
   return (
-    <div className={`glass-panel rounded-3xl p-6 border border-slate-600 transition-all duration-300 ${
+    <div className={`glass-panel rounded-3xl p-4 border border-slate-600 transition-all duration-300 ${
       crossfadeVolume === 0 ? 'opacity-60' : ''
     }`}>
       <audio 
@@ -489,13 +538,57 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
         preload="auto" 
       />
       
-      {/* Header - Shows filename and time */}
-      <div className="flex items-center justify-between mb-6">
-        <h3 className={`text-base font-semibold ${config.textColor} ${crossfadeVolume === 0 ? 'opacity-50' : ''} truncate`}>
-          {file.name}
-        </h3>
-        <div className="text-xs text-audio-text-dim font-mono">
-          {metadata.formatTime(currentTime)} / {metadata.formatTime(duration)}
+      {/* Header - Shows Controls, Filename, Volume, and Time */}
+      <div className="flex flex-col gap-3 mb-4">
+        {/* Top Row: Play/Pause, Filename, Extension Badge */}
+        <div className="flex items-center gap-3">
+          <PlaybackControls
+            isPlaying={isPlaying}
+            canPlay={canPlay}
+            onTogglePlayPause={togglePlayPause}
+            config={config}
+            crossfadeVolume={crossfadeVolume}
+          />
+          <h3 className={`text-lg font-semibold ${config.textColor} ${crossfadeVolume === 0 ? 'opacity-50' : ''} truncate flex-grow`} title={file.name}>
+            {baseName}
+          </h3>
+          <div className={`text-[10px] font-bold font-mono px-2 py-1 rounded border ${config.lightBgColor} ${config.textColor} ${config.borderColor} uppercase tracking-wider ml-auto`}>
+            {extension}
+          </div>
+        </div>
+
+        {/* Bottom Row: Link, Volume, Timestamp */}
+        <div className="flex items-center gap-4">
+          {onToggleLinkedPlayback && (
+            <button
+              onClick={onToggleLinkedPlayback}
+              className={`p-2 rounded-xl transition-all duration-200 border flex items-center justify-center ${
+                isLinkedPlayback
+                  ? `${config.lightBgColor} ${config.textColor} ${config.borderColor} ${config.glowShadow}`
+                  : 'glass-panel text-audio-text-dim hover:text-white border-transparent hover:border-slate-600'
+              }`}
+              title={isLinkedPlayback ? "Unlink Decks" : "Link Deck Playback"}
+              style={{ outline: 'none', outlineWidth: 0 }}
+            >
+              <LinkIcon size={16} className={isLinkedPlayback ? "" : "opacity-50"} />
+            </button>
+          )}
+          
+          <div className="flex-grow flex items-center min-w-[100px]">
+            <VolumeControls
+              volume={volume}
+              isMuted={isMuted}
+              config={{
+                waveColor: config.waveColor
+              }}
+              onVolumeChange={handleVolumeChange}
+              onToggleMute={toggleMute}
+            />
+          </div>
+          
+          <div className="text-xs text-audio-text-dim font-mono bg-slate-800/50 px-3 py-2 rounded-xl border border-slate-700 whitespace-nowrap ml-auto">
+            {metadata.formatTime(currentTime)} / {metadata.formatTime(duration)}
+          </div>
         </div>
       </div>
 
@@ -516,33 +609,13 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
           waveformHook={waveform}
         />
 
-      {/* Controls with Inline Metadata */}
-      <div className="flex items-center justify-between">
-        {/* Play Button */}
-        <PlaybackControls
-          isPlaying={isPlaying}
-          canPlay={canPlay}
-          onTogglePlayPause={togglePlayPause}
-          config={config}
-          crossfadeVolume={crossfadeVolume}
-        />
-
+      {/* Constraints underneath waveform */}
+      <div className="flex items-center justify-center mt-3">
         {/* Metadata in Center */}
         <AudioMetadataDisplay
           file={file}
           audioMetadata={audioMetadata}
           isSidebarCollapsed={isSidebarCollapsed}
-        />
-
-        {/* Volume Control */}
-        <VolumeControls
-          volume={volume}
-          isMuted={isMuted}
-          config={{
-            waveColor: config.waveColor
-          }}
-          onVolumeChange={handleVolumeChange}
-          onToggleMute={toggleMute}
         />
       </div>
     </div>

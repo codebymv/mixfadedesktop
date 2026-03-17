@@ -13,6 +13,13 @@ export const formatDb = (db: number): string => {
   return db.toFixed(1);
 };
 
+// Format decibel values with an explicit sign for fast scanning
+export const formatSignedDb = (db: number): string => {
+  if (db === -Infinity || isNaN(db)) return '-∞';
+  if (db < -60) return '-∞';
+  return `${db > 0 ? '+' : ''}${db.toFixed(1)}`;
+};
+
 // Format frequency values with appropriate units (Hz/kHz)
 export const formatFrequency = (freq: number): string => {
   if (freq >= 1000) {
@@ -26,9 +33,14 @@ export const formatCorrelation = (correlation: number): string => {
   return correlation.toFixed(2);
 };
 
+// Format correlation values with a sign for faster interpretation
+export const formatSignedCorrelation = (correlation: number): string => {
+  return `${correlation > 0 ? '+' : ''}${correlation.toFixed(2)}`;
+};
+
 // Format stereo width as percentage
 export const formatStereoWidth = (width: number): string => {
-  return `${width.toFixed(0)}%`;
+  return `${width.toFixed(0)}`;
 };
 
 // Format brightness (spectral centroid) values
@@ -41,7 +53,69 @@ export const formatBrightness = (brightness: number): string => {
 
 // Format activity as percentage
 export const formatActivity = (activity: number): string => {
-  return `${(activity * 100).toFixed(0)}%`;
+  return `${(activity * 100).toFixed(0)}`;
+};
+
+// Format mix/crossfade value as a bounded percentage
+export const formatMixPercent = (mix: number): string => {
+  const boundedMix = Math.max(0, Math.min(1, mix));
+  return `${Math.round(boundedMix * 100)}%`;
+};
+
+// Format L/R balance into a short stable label
+export const formatBalanceLabel = (balance: number): string => {
+  if (Math.abs(balance) < 0.05) return 'CENTER';
+  return `${balance > 0 ? 'R' : 'L'}${Math.abs(balance * 100).toFixed(0)}%`;
+};
+
+// Format peak band into a compact label
+export const formatPeakBandLabel = (band: string): string => {
+  switch (band) {
+    case 'bass': return 'BASS';
+    case 'mid': return 'MID';
+    case 'upperMid': return 'UPMID';
+    case 'high': return 'HIGH';
+    default: return '—';
+  }
+};
+
+// Format spectral balance into a compact verdict
+export const formatSpectralBalanceLabel = (balance: string): string => {
+  switch (balance) {
+    case 'BASS-HEAVY': return 'BASS';
+    case 'BALANCED': return 'EVEN';
+    case 'BRIGHT': return 'BRIGHT';
+    case 'SILENT': return 'SILENT';
+    default: return '—';
+  }
+};
+
+// Format mono compatibility into a shorter operational cue
+export const formatMonoCompatibilityLabel = (compatibility: 'EXCELLENT' | 'GOOD' | 'WARNING' | 'POOR'): string => {
+  switch (compatibility) {
+    case 'EXCELLENT': return 'SAFE';
+    case 'GOOD': return 'GOOD';
+    case 'WARNING': return 'WATCH';
+    case 'POOR': return 'RISK';
+    default: return '—';
+  }
+};
+
+// Format activity into a compact movement descriptor
+export const formatActivityLabel = (activity: number): string => {
+  if (activity > 0.8) return 'INTENSE';
+  if (activity > 0.6) return 'BUSY';
+  if (activity > 0.4) return 'MOVING';
+  if (activity > 0.2) return 'CALM';
+  return 'STILL';
+};
+
+// Summarize peak level into a quick risk cue
+export const getLevelRiskLabel = (peakDb: number): string => {
+  if (peakDb > 0) return 'CLIP';
+  if (peakDb > -3) return 'HOT';
+  if (peakDb > -12) return 'SAFE';
+  return 'LOW';
 };
 
 // Format tone vs noise ratio
@@ -103,6 +177,17 @@ export const getMonoCompatibilityColor = (compatibility: number): string => {
   return 'text-red-400'; // Poor
 };
 
+// Get color class for discrete mono compatibility labels
+export const getMonoCompatibilityToneClass = (compatibility: 'EXCELLENT' | 'GOOD' | 'WARNING' | 'POOR'): string => {
+  switch (compatibility) {
+    case 'EXCELLENT': return 'text-green-400';
+    case 'GOOD': return 'text-yellow-400';
+    case 'WARNING': return 'text-orange-400';
+    case 'POOR': return 'text-red-400';
+    default: return 'text-slate-300';
+  }
+};
+
 // Get color class for brightness (spectral centroid)
 export const getBrightnessColor = (brightness: number): string => {
   if (brightness > 4000) return 'text-blue-400'; // Very bright
@@ -127,6 +212,35 @@ export const getActivityColor = (activity: number): string => {
   if (activity > 0.4) return 'text-yellow-400'; // Moderate
   if (activity > 0.2) return 'text-green-400'; // Calm
   return 'text-green-400'; // Very calm
+};
+
+// Get color class for deck mix visibility / availability
+export const getMixToneClass = (mix: number, isPlaying: boolean): string => {
+  if (mix <= 0.01) return 'text-red-400';
+  if (isPlaying) return 'text-green-400';
+  return 'text-slate-300';
+};
+
+// Get color class for compact spectral balance verdicts
+export const getSpectralBalanceToneClass = (balance: 'BASS-HEAVY' | 'BALANCED' | 'BRIGHT' | 'SILENT'): string => {
+  switch (balance) {
+    case 'BASS-HEAVY': return 'text-red-400';
+    case 'BALANCED': return 'text-green-400';
+    case 'BRIGHT': return 'text-purple-400';
+    case 'SILENT': return 'text-slate-400';
+    default: return 'text-slate-300';
+  }
+};
+
+// Get color class for peak band emphasis
+export const getPeakBandToneClass = (band: 'bass' | 'mid' | 'upperMid' | 'high'): string => {
+  switch (band) {
+    case 'bass': return 'text-red-400';
+    case 'mid': return 'text-orange-400';
+    case 'upperMid': return 'text-green-400';
+    case 'high': return 'text-purple-400';
+    default: return 'text-slate-300';
+  }
 };
 
 // Get color class for tone vs noise ratio
@@ -201,9 +315,9 @@ export const getStereoPercent = (widthA: number, widthB: number) => {
   
   let text: string;
   if (absDelta < 1) {
-    text = `${sign}${deltaPercent.toFixed(1)}%`;
+    text = `${sign}${deltaPercent.toFixed(1)}`;
   } else {
-    text = `${sign}${deltaPercent.toFixed(0)}%`;
+    text = `${sign}${deltaPercent.toFixed(0)}`;
   }
   
   return { value: deltaPercent, text, color };

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Folder, BookOpen, Settings, Bug, ChevronRight, LucideIcon } from 'lucide-react';
+import { Folder, Activity, Monitor, Settings, Bug, ChevronRight, LucideIcon } from 'lucide-react';
+import { useColorTheme } from '../hooks/useColorTheme';
 
 export interface ActivityItem {
   id: string;
@@ -27,9 +28,15 @@ export const activities: ActivityItem[] = [
   },
   {
     id: 'analysis',
-    icon: BookOpen,
+    icon: Activity,
     label: 'Analysis',
     shortcut: 'Ctrl+Shift+A'
+  },
+  {
+    id: 'visualizer',
+    icon: Monitor,
+    label: 'Visualizer',
+    shortcut: 'Ctrl+Shift+V'
   },
   {
     id: 'settings',
@@ -46,12 +53,14 @@ export const activities: ActivityItem[] = [
 ];
 
 export function ActivityBar({ activeId, onActivityChange, className = '', isSidebarCollapsed, onToggleSidebar }: ActivityBarProps) {
+  const colorTheme = useColorTheme();
+
   return (
     <div className={`w-12 bg-slate-800 border-r border-slate-700 flex flex-col ${className}`}>
 
       {/* Main Activities */}
       <div>
-        {activities.slice(0, 2).map(({ id, icon: Icon, label, badge, shortcut }) => (
+        {activities.slice(0, 3).map(({ id, icon: Icon, label, badge, shortcut }) => (
           <button
             key={id}
             onClick={() => onActivityChange(id)}
@@ -59,10 +68,11 @@ export function ActivityBar({ activeId, onActivityChange, className = '', isSide
               w-12 h-12 flex items-center justify-center relative group
               hover:bg-slate-700 transition-all duration-200
               ${activeId === id
-                ? 'bg-slate-600 border-r-2 border-emerald-500'
+                ? 'bg-slate-600 border-r-2'
                 : 'text-slate-400 hover:text-slate-200'
               }
             `}
+            style={activeId === id ? { borderRightColor: colorTheme.deckA.base } : undefined}
             title={`${label} (${shortcut})`}
             aria-label={label}
           >
@@ -70,8 +80,8 @@ export function ActivityBar({ activeId, onActivityChange, className = '', isSide
               <svg key={`${id}-active`} width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id={`gradient-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="rgb(16, 185, 129)" />
-                    <stop offset="100%" stopColor="rgb(168, 85, 247)" />
+                    <stop offset="0%" stopColor={colorTheme.deckA.base} />
+                    <stop offset="100%" stopColor={colorTheme.deckB.base} />
                   </linearGradient>
                 </defs>
                 <Icon size={24} className={`stroke-[url(#gradient-${id})]`} />
@@ -89,7 +99,7 @@ export function ActivityBar({ activeId, onActivityChange, className = '', isSide
 
             {/* Active indicator */}
             {activeId === id && (
-              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-emerald-500 to-purple-500 rounded-r-sm" />
+              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 theme-fusion-vertical rounded-r-sm" />
             )}
           </button>
         ))}
@@ -115,7 +125,7 @@ export function ActivityBar({ activeId, onActivityChange, className = '', isSide
 
       {/* Bottom Activities (Settings, Help) */}
       <div className="border-t border-slate-700">
-        {activities.slice(2).map(({ id, icon: Icon, label, badge, shortcut }) => (
+        {activities.slice(3).map(({ id, icon: Icon, label, badge, shortcut }) => (
           <button
             key={id}
             onClick={() => onActivityChange(id)}
@@ -123,10 +133,11 @@ export function ActivityBar({ activeId, onActivityChange, className = '', isSide
               w-12 h-12 flex items-center justify-center relative group
               hover:bg-slate-700 transition-all duration-200
               ${activeId === id 
-                ? 'bg-slate-600 border-r-2 border-emerald-500' 
+                ? 'bg-slate-600 border-r-2' 
                 : 'text-slate-400 hover:text-slate-200'
               }
             `}
+            style={activeId === id ? { borderRightColor: colorTheme.deckA.base } : undefined}
             title={`${label} (${shortcut})`}
             aria-label={label}
           >
@@ -134,8 +145,8 @@ export function ActivityBar({ activeId, onActivityChange, className = '', isSide
               <svg key={`${id}-active`} width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                   <linearGradient id={`gradient-${id}`} x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" stopColor="rgb(16, 185, 129)" />
-                    <stop offset="100%" stopColor="rgb(168, 85, 247)" />
+                    <stop offset="0%" stopColor={colorTheme.deckA.base} />
+                    <stop offset="100%" stopColor={colorTheme.deckB.base} />
                   </linearGradient>
                 </defs>
                 <Icon size={24} className={`stroke-[url(#gradient-${id})]`} />
@@ -153,7 +164,7 @@ export function ActivityBar({ activeId, onActivityChange, className = '', isSide
             
             {/* Active indicator */}
             {activeId === id && (
-              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 bg-gradient-to-b from-emerald-500 to-purple-500 rounded-r-sm" />
+              <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-6 theme-fusion-vertical rounded-r-sm" />
             )}
           </button>
         ))}

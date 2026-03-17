@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AudioLevels, AudioUtils, RMSAverager } from '../utils/audioAnalysis';
+import { InsightMetricCard } from './analysis/InsightMetricCard';
+import { formatMixPercent, formatSignedDb, getLevelRiskLabel, getMixToneClass } from '../utils/analysisFormatters';
 
 interface LevelMeterProps {
   label: string;
@@ -190,46 +192,66 @@ export function LevelMeter({
     plus6: dbToMeterPosition(6)      // 100%
   };
 
-  return (
-    <div className="h-full flex flex-col">
-      {/* Header with L+R combined measurements - using smoothed values */}
-      <div className="flex items-center justify-between mb-2 text-xs font-mono">
-        <div className="text-audio-text-dim">
-          L+R RMS: <span className="text-white font-bold">{AudioUtils.rmsToDb(combinedRmsSmoothed).toFixed(1)}</span> dB
-        </div>
-        {typeof crossfadeVolume === 'number' && crossfadeVolume < 1 && (
-          <div className="bg-gradient-to-r from-emerald-400 to-purple-400 bg-clip-text text-transparent font-bold">
-            X-FADE: {Math.round(crossfadeVolume * 100)}%
+  const combinedPeakDb = Math.max(linearToDbExtended(leftPeak), linearToDbExtended(rightPeak));
+  const combinedTruePeakDb = Math.max(linearToDbExtended(leftTruePeak), linearToDbExtended(rightTruePeak));
+  const levelRisk = getLevelRiskLabel(combinedTruePeakDb);
+  const mixToneClass = getMixToneClass(crossfadeVolume, isPlaying);
+  const riskToneClass = levelRisk === 'CLIP'
+    ? 'text-red-400'
+    : levelRisk === 'HOT'
+      ? 'text-orange-400'
+      : levelRisk === 'SAFE'
+        ? 'text-green-400'
+        : 'text-slate-400';
+  const transportLabel = crossfadeVolume === 0 ? 'MUTED' : isPlaying ? 'PLAYING' : 'PAUSED';
+
+  const renderChannelMetrics = (
+    channelLabel: 'L' | 'R',
+    lufsValue: number,
+    rmsValue: number,
+    peakValue: number,
+    truePeakValue: number
+  ) => {
+    const peakDb = linearToDbExtended(peakValue);
+    const truePeakDb = linearToDbExtended(truePeakValue);
+
+    return (
+      <div className="grid grid-cols-[18px_minmax(0,1fr)] items-start gap-1.5 mb-1">
+        <span className="pt-1.5 text-[10px] font-semibold font-mono text-audio-text-dim whitespace-nowrap">
+          {channelLabel}
+        </span>
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-1.5">
+          <div className="min-w-0 rounded-lg bg-slate-900/60 px-2 py-1">
+            <div className="text-[9px] uppercase tracking-[0.14em] text-slate-500 whitespace-nowrap">LUFS</div>
+            <div className="mt-0.5 text-xs font-mono font-bold tabular-nums text-white whitespace-nowrap">{lufsValue.toFixed(1)}</div>
           </div>
-        )}
-        <div className="text-audio-text-dim">
-          L+R LUFS: <span className="text-white font-bold">{lufsSmoothed.toFixed(1)}</span>
+          <div className="min-w-0 rounded-lg bg-slate-900/60 px-2 py-1">
+            <div className="text-[9px] uppercase tracking-[0.14em] text-slate-500 whitespace-nowrap">RMS</div>
+            <div className="mt-0.5 text-xs font-mono font-bold tabular-nums text-white whitespace-nowrap">{formatSignedDb(AudioUtils.rmsToDb(rmsValue))}</div>
+          </div>
+          <div className="min-w-0 rounded-lg bg-slate-900/60 px-2 py-1">
+            <div className="text-[9px] uppercase tracking-[0.14em] text-slate-500 whitespace-nowrap">PK</div>
+            <div className={`mt-0.5 text-xs font-mono font-bold tabular-nums whitespace-nowrap ${peakDb >= 0 ? 'text-yellow-400' : 'text-white'}`}>{formatSignedDb(peakDb)}</div>
+          </div>
+          <div className="min-w-0 rounded-lg bg-slate-900/60 px-2 py-1">
+            <div className="text-[9px] uppercase tracking-[0.14em] text-slate-500 whitespace-nowrap">TP</div>
+            <div className={`mt-0.5 text-xs font-mono font-bold tabular-nums whitespace-nowrap ${truePeakDb > 0 ? 'text-red-400' : 'text-white'}`}>{formatSignedDb(truePeakDb)}</div>
+          </div>
         </div>
       </div>
+    );
+  };
+
+  return (
+    <div className="h-full flex flex-col">
+      {/* Reduced empty space at top */}
+      <div className="h-1 shrink-0" />
       
-      <div className="flex-1 space-y-3">
-        {/* Left Channel */}
+      <div className="space-y-6 shrink-0 mt-2">
         <div>
-          <div className="flex justify-between text-xs text-audio-text-dim mb-1 font-mono">
-            <span className="font-semibold">L</span>
-            <div className="flex gap-4">
-              <span className="text-white">
-                LUFS: {leftLufsSmoothed.toFixed(1)}
-              </span>
-              <span className="text-white">
-                RMS: {AudioUtils.rmsToDb(leftRmsSmoothed).toFixed(1)} dB
-              </span>
-              <span className={`${linearToDbExtended(leftPeak) >= 0 ? 'text-yellow-400' : 'text-white'}`}>
-                Peak: {linearToDbExtended(leftPeak).toFixed(1)} dB
-              </span>
-              <span className={`${linearToDbExtended(leftTruePeak) > 0 ? 'text-red-400' : 'text-white'}`}>
-                TP: {linearToDbExtended(leftTruePeak).toFixed(1)} dB
-              </span>
-            </div>
-          </div>
-          
+          {renderChannelMetrics('L', leftLufsSmoothed, leftRmsSmoothed, leftPeak, leftTruePeak)}
           {/* Main level meter */}
-          <div className="relative h-6 bg-slate-900 rounded-2xl overflow-hidden mb-1">
+          <div className="relative h-6 bg-slate-900 rounded-2xl overflow-hidden">
             {/* Background grid lines */}
             <div className="absolute inset-0 flex">
               {/* Critical markers */}
@@ -258,30 +280,25 @@ export function LevelMeter({
               style={{ left: `${Math.min(dbToMeterPosition(linearToDbExtended(leftTruePeak)), 99)}%` }}
             />
           </div>
+          
+          {/* dB Scale */}
+          <div className="flex justify-between text-[10px] text-audio-text-dim font-mono tabular-nums relative whitespace-nowrap mt-1.5">
+            <span>-60</span>
+            <span>-48</span>
+            <span>-36</span>
+            <span>-24</span>
+            <span>-18</span>
+            <span>-12</span>
+            <span>-6</span>
+            <span className="text-yellow-400 font-bold">0</span>
+            <span className="text-red-400 font-bold">+6</span>
+          </div>
         </div>
         
-        {/* Right Channel */}
         <div>
-          <div className="flex justify-between text-xs text-audio-text-dim mb-1 font-mono">
-            <span className="font-semibold">R</span>
-            <div className="flex gap-4">
-              <span className="text-white">
-                LUFS: {rightLufsSmoothed.toFixed(1)}
-              </span>
-              <span className="text-white">
-                RMS: {AudioUtils.rmsToDb(rightRmsSmoothed).toFixed(1)} dB
-              </span>
-              <span className={`${linearToDbExtended(rightPeak) >= 0 ? 'text-yellow-400' : 'text-white'}`}>
-                Peak: {linearToDbExtended(rightPeak).toFixed(1)} dB
-              </span>
-              <span className={`${linearToDbExtended(rightTruePeak) > 0 ? 'text-red-400' : 'text-white'}`}>
-                TP: {linearToDbExtended(rightTruePeak).toFixed(1)} dB
-              </span>
-            </div>
-          </div>
-          
+          {renderChannelMetrics('R', rightLufsSmoothed, rightRmsSmoothed, rightPeak, rightTruePeak)}
           {/* Main level meter */}
-          <div className="relative h-6 bg-slate-900 rounded-2xl overflow-hidden mb-1">
+          <div className="relative h-6 bg-slate-900 rounded-2xl overflow-hidden">
             {/* Background grid lines */}
             <div className="absolute inset-0 flex">
               {/* Critical markers */}
@@ -310,47 +327,44 @@ export function LevelMeter({
               style={{ left: `${Math.min(dbToMeterPosition(linearToDbExtended(rightTruePeak)), 99)}%` }}
             />
           </div>
+          
+          {/* dB Scale */}
+          <div className="flex justify-between text-[10px] text-audio-text-dim font-mono tabular-nums relative whitespace-nowrap mt-1.5">
+            <span>-60</span>
+            <span>-48</span>
+            <span>-36</span>
+            <span>-24</span>
+            <span>-18</span>
+            <span>-12</span>
+            <span>-6</span>
+            <span className="text-yellow-400 font-bold">0</span>
+            <span className="text-red-400 font-bold">+6</span>
+          </div>
         </div>
       </div>
       
-      {/* Enhanced scale with proper positioning */}
-      <div className="flex justify-between text-xs text-audio-text-dim mt-2 font-mono relative">
-        <span>-60</span>
-        <span>-48</span>
-        <span>-36</span>
-        <span>-24</span>
-        <span>-18</span>
-        <span>-12</span>
-        <span>-6</span>
-        <span className="text-yellow-400 font-bold">0</span>
-        <span className="text-red-400 font-bold">+6</span>
-      </div>
+      {/* Anchor spacer */}
+      <div className="flex-1" />
       
-      {/* Legend */}
-      <div className="mt-2 pt-2 border-t border-slate-700/50">
-        <div className="flex items-center justify-between text-xs text-audio-text-dim">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <div className="w-3 h-1 bg-red-400 rounded"></div>
-              <span>Clipping</span>
+      {/* Standardized Footer block */}
+      <div className="shrink-0 space-y-2">
+        
+        <div className="pt-2 border-t border-slate-700/50">
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="rounded-lg bg-slate-900/60 px-2.5 py-2 min-w-0">
+              <div className="uppercase tracking-[0.12em] text-slate-500 whitespace-nowrap">Risk</div>
+              <div className={`mt-1 font-mono font-bold tabular-nums whitespace-nowrap ${riskToneClass}`}>{levelRisk}</div>
             </div>
-            {/* <div className="flex items-center gap-1">
-              <div className="w-3 h-1 bg-emerald-400 rounded"></div>
-              <span>True Peak</span>
-            </div> */}
-          </div>
-          <div className={`flex items-center gap-1 ${
-            crossfadeVolume === 0 ? 'text-red-400' :
-            isPlaying ? 'text-green-400' : 'text-slate-400'
-          }`}>
-            <div className={`w-2 h-2 rounded-full ${
-              crossfadeVolume === 0 ? 'bg-red-500' :
-              isPlaying ? 'bg-green-500 animate-pulse' : 'bg-slate-500'
-            }`}></div>
-            <span className="font-mono">
-              {crossfadeVolume === 0 ? 'MUTED' :
-               isPlaying ? 'PLAYING' : 'PAUSED'}
-            </span>
+            <div className="rounded-lg bg-slate-900/60 px-2.5 py-2 min-w-0">
+              <div className="uppercase tracking-[0.12em] text-slate-500 whitespace-nowrap">State</div>
+              <div className={`mt-1 flex items-center gap-1.5 font-mono font-bold tabular-nums whitespace-nowrap ${mixToneClass}`}>
+                <div className={`w-2 h-2 rounded-full ${
+                crossfadeVolume === 0 ? 'bg-red-500' :
+                isPlaying ? 'bg-green-500 animate-pulse' : 'bg-slate-500'
+              }`}></div>
+                <span>{transportLabel}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

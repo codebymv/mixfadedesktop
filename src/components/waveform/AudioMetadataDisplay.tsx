@@ -15,15 +15,13 @@ export const AudioMetadataDisplay: React.FC<AudioMetadataDisplayProps> = ({
   const { formatSampleRate, getChannelText, formatFileSize } = useAudioMetadata();
 
   return (
-    <div className={`flex items-center text-xs text-audio-text-dim font-mono ${
-      isSidebarCollapsed ? 'gap-6' : 'gap-4'
-    }`}>
+    <div className="flex items-center justify-around w-full text-xs text-audio-text-dim font-mono mt-2">
       {/* File Size */}
       <div className="text-center">
         <div className="text-white font-semibold">{formatFileSize(file.size)} MB</div>
         <div className="text-audio-text-dim">Size</div>
       </div>
-      
+
       {/* Sample Rate */}
       <div className="text-center">
         <div className="text-white font-semibold">
@@ -31,7 +29,7 @@ export const AudioMetadataDisplay: React.FC<AudioMetadataDisplayProps> = ({
         </div>
         <div className="text-audio-text-dim">Sample Rate</div>
       </div>
-      
+
       {/* Bit Depth / Bitrate */}
       <div className="text-center">
         <div className="text-white font-semibold">
@@ -41,7 +39,7 @@ export const AudioMetadataDisplay: React.FC<AudioMetadataDisplayProps> = ({
           {audioMetadata?.format === 'MP3' || audioMetadata?.format === 'AAC' ? 'Bitrate' : 'Bit Depth'}
         </div>
       </div>
-      
+
       {/* Channels */}
       <div className="text-center">
         <div className="text-white font-semibold">

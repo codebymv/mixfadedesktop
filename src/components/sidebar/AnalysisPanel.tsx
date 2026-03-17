@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Music } from 'lucide-react';
+import { Music, Activity } from 'lucide-react';
 import { AudioLevels, StereoAnalysis, FrequencyAnalysis, SpectrogramAnalysis, RMSAverager, FrequencyAverager, StereoAverager, SpectrogramAverager, SpectrogramBuffer, calculateFrequencyMetrics, calculateSpectrogramMetrics } from '../../utils/audioAnalysis';
 import { LevelsAnalysisSection } from '../analysis/LevelsAnalysisSection';
 import { FrequencyAnalysisSection } from '../analysis/FrequencyAnalysisSection';
@@ -12,8 +12,8 @@ interface AnalysisSnapshot {
   timestamp: number;
   trackAFile?: string;
   trackBFile?: string;
-  trackAAudioLevels?: AudioLevels;
-  trackBAudioLevels?: AudioLevels;
+  trackADeckLevels?: AudioLevels;
+  trackBDeckLevels?: AudioLevels;
   trackAStereoData?: StereoAnalysis;
   trackBStereoData?: StereoAnalysis;
   trackAFrequencyData?: Float32Array;
@@ -29,8 +29,8 @@ interface AnalysisSnapshot {
 interface AnalysisPanelProps {
   trackAFile?: File;
   trackBFile?: File;
-  trackAAudioLevels?: AudioLevels;
-  trackBAudioLevels?: AudioLevels;
+  trackADeckLevels?: AudioLevels;
+  trackBDeckLevels?: AudioLevels;
   trackAStereoData?: StereoAnalysis;
   trackBStereoData?: StereoAnalysis;
   trackAFrequencyData?: Float32Array;
@@ -46,8 +46,8 @@ interface AnalysisPanelProps {
 export function AnalysisPanel({
   trackAFile,
   trackBFile,
-  trackAAudioLevels,
-  trackBAudioLevels,
+  trackADeckLevels,
+  trackBDeckLevels,
   trackAStereoData,
   trackBStereoData,
   trackAFrequencyData,
@@ -183,21 +183,21 @@ export function AnalysisPanel({
 
   // Update smoothed values for Track A
   useEffect(() => {
-    if (trackAAudioLevels && isTrackAPlaying && rmsAveragerA.current) {
+    if (trackADeckLevels && isTrackAPlaying && rmsAveragerA.current) {
       const shouldUpdate = rmsAveragerA.current.addSample(
-        trackAAudioLevels.leftRms,
-        trackAAudioLevels.rightRms,
-        trackAAudioLevels.rms,
-        trackAAudioLevels.lufs,
-        trackAAudioLevels.leftLufs,
-        trackAAudioLevels.rightLufs
+        trackADeckLevels.leftRms,
+        trackADeckLevels.rightRms,
+        trackADeckLevels.rms,
+        trackADeckLevels.lufs,
+        trackADeckLevels.leftLufs,
+        trackADeckLevels.rightLufs
       );
       
       if (shouldUpdate) {
         const smoothed = rmsAveragerA.current.getSmoothedValues();
         setTrackASmoothed({
-          left: trackAAudioLevels.left, // Keep peaks instant
-          right: trackAAudioLevels.right,
+          left: trackADeckLevels.left, // Keep peaks instant
+          right: trackADeckLevels.right,
           leftRms: smoothed.leftRmsSmoothed,
           rightRms: smoothed.rightRmsSmoothed,
           rms: smoothed.rmsSmoothed,
@@ -209,25 +209,25 @@ export function AnalysisPanel({
     } else if (!isTrackAPlaying) {
       // Keep last smoothed values when paused
     }
-  }, [trackAAudioLevels, isTrackAPlaying]);
+  }, [trackADeckLevels, isTrackAPlaying]);
 
   // Update smoothed values for Track B
   useEffect(() => {
-    if (trackBAudioLevels && isTrackBPlaying && rmsAveragerB.current) {
+    if (trackBDeckLevels && isTrackBPlaying && rmsAveragerB.current) {
       const shouldUpdate = rmsAveragerB.current.addSample(
-        trackBAudioLevels.leftRms,
-        trackBAudioLevels.rightRms,
-        trackBAudioLevels.rms,
-        trackBAudioLevels.lufs,
-        trackBAudioLevels.leftLufs,
-        trackBAudioLevels.rightLufs
+        trackBDeckLevels.leftRms,
+        trackBDeckLevels.rightRms,
+        trackBDeckLevels.rms,
+        trackBDeckLevels.lufs,
+        trackBDeckLevels.leftLufs,
+        trackBDeckLevels.rightLufs
       );
       
       if (shouldUpdate) {
         const smoothed = rmsAveragerB.current.getSmoothedValues();
         setTrackBSmoothed({
-          left: trackBAudioLevels.left, // Keep peaks instant
-          right: trackBAudioLevels.right,
+          left: trackBDeckLevels.left, // Keep peaks instant
+          right: trackBDeckLevels.right,
           leftRms: smoothed.leftRmsSmoothed,
           rightRms: smoothed.rightRmsSmoothed,
           rms: smoothed.rmsSmoothed,
@@ -239,7 +239,7 @@ export function AnalysisPanel({
     } else if (!isTrackBPlaying) {
       // Keep last smoothed values when paused
     }
-  }, [trackBAudioLevels, isTrackBPlaying]);
+  }, [trackBDeckLevels, isTrackBPlaying]);
 
   // Update smoothed frequency analysis for Track A
   useEffect(() => {
@@ -448,8 +448,8 @@ export function AnalysisPanel({
         timestamp: Date.now(),
         trackAFile: trackAFile?.name,
         trackBFile: trackBFile?.name,
-        trackAAudioLevels: trackASmoothed || undefined,
-        trackBAudioLevels: trackBSmoothed || undefined,
+        trackADeckLevels: trackASmoothed || undefined,
+        trackBDeckLevels: trackBSmoothed || undefined,
         trackAStereoData,
         trackBStereoData,
         trackAFrequencyData,
@@ -484,8 +484,8 @@ export function AnalysisPanel({
         timestamp: Date.now(),
         trackAFile: trackAFile?.name,
         trackBFile: trackBFile?.name,
-        trackAAudioLevels: preCrossfadeTrackA || trackASmoothed || undefined,
-        trackBAudioLevels: preCrossfadeTrackB || trackBSmoothed || undefined,
+        trackADeckLevels: preCrossfadeTrackA || trackASmoothed || undefined,
+        trackBDeckLevels: preCrossfadeTrackB || trackBSmoothed || undefined,
         trackAStereoData,
         trackBStereoData,
         trackAFrequencyData,
@@ -510,11 +510,11 @@ export function AnalysisPanel({
         trackAFile: trackAFile?.name,
         trackBFile: trackBFile?.name,
         // For Track A: Use live data if active, pre-crossfade if faded out
-        trackAAudioLevels: isTrackFadedOut(volumeA) && preCrossfadeTrackA 
+        trackADeckLevels: isTrackFadedOut(volumeA) && preCrossfadeTrackA 
           ? preCrossfadeTrackA 
           : trackASmoothed || undefined,
         // For Track B: Use live data if active, pre-crossfade if faded out  
-        trackBAudioLevels: isTrackFadedOut(volumeB) && preCrossfadeTrackB 
+        trackBDeckLevels: isTrackFadedOut(volumeB) && preCrossfadeTrackB 
           ? preCrossfadeTrackB 
           : trackBSmoothed || undefined,
         trackAStereoData,
@@ -555,8 +555,8 @@ export function AnalysisPanel({
         timestamp: Date.now(),
         trackAFile: trackAFile?.name,
         trackBFile: trackBFile?.name,
-        trackAAudioLevels: trackASmoothed || undefined,
-        trackBAudioLevels: trackBSmoothed || undefined,
+        trackADeckLevels: trackASmoothed || undefined,
+        trackBDeckLevels: trackBSmoothed || undefined,
         trackAStereoData,
         trackBStereoData,
         trackAFrequencyData,
@@ -586,8 +586,8 @@ export function AnalysisPanel({
       timestamp: Date.now(),
       trackAFile: trackAFile?.name,
       trackBFile: trackBFile?.name,
-      trackAAudioLevels: trackASmoothed || undefined,
-      trackBAudioLevels: trackBSmoothed || undefined,
+      trackADeckLevels: trackASmoothed || undefined,
+      trackBDeckLevels: trackBSmoothed || undefined,
       trackAStereoData,
       trackBStereoData,
       trackAFrequencyData,
@@ -611,11 +611,11 @@ export function AnalysisPanel({
       <div className="space-y-2">
         <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">A/B Analysis</h3>
         
-        {currentAnalysis.trackAAudioLevels || currentAnalysis.trackBAudioLevels ? (
+        {currentAnalysis.trackADeckLevels || currentAnalysis.trackBDeckLevels ? (
           <div className="space-y-1">
             <LevelsAnalysisSection
-              trackAAudioLevels={currentAnalysis.trackAAudioLevels}
-              trackBAudioLevels={currentAnalysis.trackBAudioLevels}
+              trackADeckLevels={currentAnalysis.trackADeckLevels}
+              trackBDeckLevels={currentAnalysis.trackBDeckLevels}
               isTransitioning={isTransitioning}
               isTrackAPlaying={isTrackAPlaying}
               isTrackBPlaying={isTrackBPlaying}
@@ -647,9 +647,9 @@ export function AnalysisPanel({
           </div>
         ) : (
           <div className="text-center py-8">
-            <Music size={32} className="text-white/60 mx-auto mb-2" />
-            <p className="text-sm text-white">No analysis data</p>
-            <p className="text-xs text-white/70">Load and play audio files to see analysis</p>
+            <Activity size={32} className="text-white/60 mx-auto mb-3" />
+            <p className="text-sm text-white font-medium">No analysis data</p>
+            <p className="text-xs text-white/70 mt-1">Load and play audio files to see analysis</p>
           </div>
         )}
       </div>
