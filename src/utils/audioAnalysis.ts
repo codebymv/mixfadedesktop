@@ -47,6 +47,15 @@ export class RMSAverager {
   private lufsHistory: number[] = [];
   private leftLufsHistory: number[] = [];  // Add L LUFS history
   private rightLufsHistory: number[] = []; // Add R LUFS history
+
+  // Running sums for O(1) average calculation
+  private leftRmsSumSq: number = 0;
+  private rightRmsSumSq: number = 0;
+  private combinedRmsSumSq: number = 0;
+  private lufsSum: number = 0;
+  private leftLufsSum: number = 0;
+  private rightLufsSum: number = 0;
+
   private readonly windowSize: number;
   private readonly updateInterval: number;
   private lastUpdateTime: number = -1;
@@ -76,15 +85,34 @@ export class RMSAverager {
     this.lufsHistory.push(lufs);
     this.leftLufsHistory.push(leftLufs);
     this.rightLufsHistory.push(rightLufs);
+
+    this.leftRmsSumSq += leftRms * leftRms;
+    this.rightRmsSumSq += rightRms * rightRms;
+    this.combinedRmsSumSq += combinedRms * combinedRms;
+    this.lufsSum += lufs;
+    this.leftLufsSum += leftLufs;
+    this.rightLufsSum += rightLufs;
     
     // Maintain window size
     if (this.leftRmsHistory.length > this.windowSize) {
-      this.leftRmsHistory.shift();
-      this.rightRmsHistory.shift();
-      this.combinedRmsHistory.shift();
-      this.lufsHistory.shift();
-      this.leftLufsHistory.shift();
-      this.rightLufsHistory.shift();
+      const oldLeftRms = this.leftRmsHistory.shift()!;
+      const oldRightRms = this.rightRmsHistory.shift()!;
+      const oldCombinedRms = this.combinedRmsHistory.shift()!;
+      const oldLufs = this.lufsHistory.shift()!;
+      const oldLeftLufs = this.leftLufsHistory.shift()!;
+      const oldRightLufs = this.rightLufsHistory.shift()!;
+
+      this.leftRmsSumSq -= oldLeftRms * oldLeftRms;
+      this.rightRmsSumSq -= oldRightRms * oldRightRms;
+      this.combinedRmsSumSq -= oldCombinedRms * oldCombinedRms;
+      this.lufsSum -= oldLufs;
+      this.leftLufsSum -= oldLeftLufs;
+      this.rightLufsSum -= oldRightLufs;
+
+      // Prevent floating point drift
+      if (this.leftRmsSumSq < 0) this.leftRmsSumSq = 0;
+      if (this.rightRmsSumSq < 0) this.rightRmsSumSq = 0;
+      if (this.combinedRmsSumSq < 0) this.combinedRmsSumSq = 0;
     }
     
     return true;
@@ -109,23 +137,17 @@ export class RMSAverager {
       };
     }
 
+    const len = this.leftRmsHistory.length;
+
     // Use RMS averaging for RMS values (more accurate than simple mean)
-    const leftRmsSmoothed = Math.sqrt(
-      this.leftRmsHistory.reduce((sum, val) => sum + val * val, 0) / this.leftRmsHistory.length
-    );
-    
-    const rightRmsSmoothed = Math.sqrt(
-      this.rightRmsHistory.reduce((sum, val) => sum + val * val, 0) / this.rightRmsHistory.length
-    );
-    
-    const rmsSmoothed = Math.sqrt(
-      this.combinedRmsHistory.reduce((sum, val) => sum + val * val, 0) / this.combinedRmsHistory.length
-    );
+    const leftRmsSmoothed = Math.sqrt(this.leftRmsSumSq / len);
+    const rightRmsSmoothed = Math.sqrt(this.rightRmsSumSq / len);
+    const rmsSmoothed = Math.sqrt(this.combinedRmsSumSq / len);
 
     // Use simple average for LUFS (already logarithmic)
-    const lufsSmoothed = this.lufsHistory.reduce((sum, val) => sum + val, 0) / this.lufsHistory.length;
-    const leftLufsSmoothed = this.leftLufsHistory.reduce((sum, val) => sum + val, 0) / this.leftLufsHistory.length;
-    const rightLufsSmoothed = this.rightLufsHistory.reduce((sum, val) => sum + val, 0) / this.rightLufsHistory.length;
+    const lufsSmoothed = this.lufsSum / len;
+    const leftLufsSmoothed = this.leftLufsSum / len;
+    const rightLufsSmoothed = this.rightLufsSum / len;
 
     return {
       leftRmsSmoothed,
@@ -144,6 +166,12 @@ export class RMSAverager {
     this.lufsHistory = [];
     this.leftLufsHistory = [];
     this.rightLufsHistory = [];
+    this.leftRmsSumSq = 0;
+    this.rightRmsSumSq = 0;
+    this.combinedRmsSumSq = 0;
+    this.lufsSum = 0;
+    this.leftLufsSum = 0;
+    this.rightLufsSum = 0;
     this.lastUpdateTime = -1;
   }
 }
@@ -156,6 +184,16 @@ export class StereoAverager {
   private sideLevelHistory: number[] = [];
   private midLufsHistory: number[] = [];
   private sideLufsHistory: number[] = [];
+
+  // Running sums for O(1) average calculation
+  private phaseCorrelationSum: number = 0;
+  private stereoWidthSum: number = 0;
+  private balanceSum: number = 0;
+  private midLevelSumSq: number = 0;
+  private sideLevelSumSq: number = 0;
+  private midLufsSum: number = 0;
+  private sideLufsSum: number = 0;
+
   private readonly windowSize: number;
   private readonly updateInterval: number;
   private lastUpdateTime: number = -1;
@@ -186,16 +224,36 @@ export class StereoAverager {
     this.sideLevelHistory.push(stereoData.sideLevel);
     this.midLufsHistory.push(stereoData.midLufs);
     this.sideLufsHistory.push(stereoData.sideLufs);
+
+    this.phaseCorrelationSum += stereoData.phaseCorrelation;
+    this.stereoWidthSum += stereoData.stereoWidth;
+    this.balanceSum += stereoData.balance;
+    this.midLevelSumSq += stereoData.midLevel * stereoData.midLevel;
+    this.sideLevelSumSq += stereoData.sideLevel * stereoData.sideLevel;
+    this.midLufsSum += stereoData.midLufs;
+    this.sideLufsSum += stereoData.sideLufs;
     
     // Maintain window size
     if (this.phaseCorrelationHistory.length > this.windowSize) {
-      this.phaseCorrelationHistory.shift();
-      this.stereoWidthHistory.shift();
-      this.balanceHistory.shift();
-      this.midLevelHistory.shift();
-      this.sideLevelHistory.shift();
-      this.midLufsHistory.shift();
-      this.sideLufsHistory.shift();
+      const oldPhaseCorrelation = this.phaseCorrelationHistory.shift()!;
+      const oldStereoWidth = this.stereoWidthHistory.shift()!;
+      const oldBalance = this.balanceHistory.shift()!;
+      const oldMidLevel = this.midLevelHistory.shift()!;
+      const oldSideLevel = this.sideLevelHistory.shift()!;
+      const oldMidLufs = this.midLufsHistory.shift()!;
+      const oldSideLufs = this.sideLufsHistory.shift()!;
+
+      this.phaseCorrelationSum -= oldPhaseCorrelation;
+      this.stereoWidthSum -= oldStereoWidth;
+      this.balanceSum -= oldBalance;
+      this.midLevelSumSq -= oldMidLevel * oldMidLevel;
+      this.sideLevelSumSq -= oldSideLevel * oldSideLevel;
+      this.midLufsSum -= oldMidLufs;
+      this.sideLufsSum -= oldSideLufs;
+
+      // Prevent floating point drift
+      if (this.midLevelSumSq < 0) this.midLevelSumSq = 0;
+      if (this.sideLevelSumSq < 0) this.sideLevelSumSq = 0;
     }
     
     return true;
@@ -215,23 +273,20 @@ export class StereoAverager {
       };
     }
 
+    const len = this.phaseCorrelationHistory.length;
+
     // Simple average for correlation and balance (bounded values)
-    const phaseCorrelation = this.phaseCorrelationHistory.reduce((sum, val) => sum + val, 0) / this.phaseCorrelationHistory.length;
-    const balance = this.balanceHistory.reduce((sum, val) => sum + val, 0) / this.balanceHistory.length;
-    const stereoWidth = this.stereoWidthHistory.reduce((sum, val) => sum + val, 0) / this.stereoWidthHistory.length;
+    const phaseCorrelation = this.phaseCorrelationSum / len;
+    const balance = this.balanceSum / len;
+    const stereoWidth = this.stereoWidthSum / len;
 
     // RMS averaging for level values (more accurate than simple mean)
-    const midLevel = Math.sqrt(
-      this.midLevelHistory.reduce((sum, val) => sum + val * val, 0) / this.midLevelHistory.length
-    );
-    
-    const sideLevel = Math.sqrt(
-      this.sideLevelHistory.reduce((sum, val) => sum + val * val, 0) / this.sideLevelHistory.length
-    );
+    const midLevel = Math.sqrt(this.midLevelSumSq / len);
+    const sideLevel = Math.sqrt(this.sideLevelSumSq / len);
 
     // Simple average for LUFS (already logarithmic)
-    const midLufs = this.midLufsHistory.reduce((sum, val) => sum + val, 0) / this.midLufsHistory.length;
-    const sideLufs = this.sideLufsHistory.reduce((sum, val) => sum + val, 0) / this.sideLufsHistory.length;
+    const midLufs = this.midLufsSum / len;
+    const sideLufs = this.sideLufsSum / len;
 
     // Calculate mono compatibility from smoothed correlation
     let monoCompatibility: 'EXCELLENT' | 'GOOD' | 'WARNING' | 'POOR';
@@ -260,6 +315,13 @@ export class StereoAverager {
     this.sideLevelHistory = [];
     this.midLufsHistory = [];
     this.sideLufsHistory = [];
+    this.phaseCorrelationSum = 0;
+    this.stereoWidthSum = 0;
+    this.balanceSum = 0;
+    this.midLevelSumSq = 0;
+    this.sideLevelSumSq = 0;
+    this.midLufsSum = 0;
+    this.sideLufsSum = 0;
     this.lastUpdateTime = -1;
   }
 }
@@ -270,6 +332,14 @@ export class SpectrogramAverager {
   private activityHistory: number[] = [];
   private toneVsNoiseHistory: number[] = [];
   private highFreqContentHistory: number[] = [];
+
+  // Running sums for O(1) average calculation
+  private brightnessSum: number = 0;
+  private dynamicRangeSum: number = 0;
+  private activitySum: number = 0;
+  private toneVsNoiseSum: number = 0;
+  private highFreqContentSum: number = 0;
+
   private readonly windowSize: number;
   private readonly updateInterval: number;
   private lastUpdateTime: number = 0;
@@ -297,14 +367,26 @@ export class SpectrogramAverager {
     this.activityHistory.push(spectrogramData.activity);
     this.toneVsNoiseHistory.push(spectrogramData.toneVsNoise);
     this.highFreqContentHistory.push(spectrogramData.highFreqContent);
+
+    this.brightnessSum += spectrogramData.brightness;
+    this.dynamicRangeSum += spectrogramData.dynamicRange;
+    this.activitySum += spectrogramData.activity;
+    this.toneVsNoiseSum += spectrogramData.toneVsNoise;
+    this.highFreqContentSum += spectrogramData.highFreqContent;
     
     // Maintain window size
     if (this.brightnessHistory.length > this.windowSize) {
-      this.brightnessHistory.shift();
-      this.dynamicRangeHistory.shift();
-      this.activityHistory.shift();
-      this.toneVsNoiseHistory.shift();
-      this.highFreqContentHistory.shift();
+      const oldBrightness = this.brightnessHistory.shift()!;
+      const oldDynamicRange = this.dynamicRangeHistory.shift()!;
+      const oldActivity = this.activityHistory.shift()!;
+      const oldToneVsNoise = this.toneVsNoiseHistory.shift()!;
+      const oldHighFreqContent = this.highFreqContentHistory.shift()!;
+
+      this.brightnessSum -= oldBrightness;
+      this.dynamicRangeSum -= oldDynamicRange;
+      this.activitySum -= oldActivity;
+      this.toneVsNoiseSum -= oldToneVsNoise;
+      this.highFreqContentSum -= oldHighFreqContent;
     }
     
     return true;
@@ -321,12 +403,14 @@ export class SpectrogramAverager {
       };
     }
 
+    const len = this.brightnessHistory.length;
+
     // Use simple averaging for these metrics
-    const brightness = this.brightnessHistory.reduce((sum, val) => sum + val, 0) / this.brightnessHistory.length;
-    const dynamicRange = this.dynamicRangeHistory.reduce((sum, val) => sum + val, 0) / this.dynamicRangeHistory.length;
-    const activity = this.activityHistory.reduce((sum, val) => sum + val, 0) / this.activityHistory.length;
-    const toneVsNoise = this.toneVsNoiseHistory.reduce((sum, val) => sum + val, 0) / this.toneVsNoiseHistory.length;
-    const highFreqContent = this.highFreqContentHistory.reduce((sum, val) => sum + val, 0) / this.highFreqContentHistory.length;
+    const brightness = this.brightnessSum / len;
+    const dynamicRange = this.dynamicRangeSum / len;
+    const activity = this.activitySum / len;
+    const toneVsNoise = this.toneVsNoiseSum / len;
+    const highFreqContent = this.highFreqContentSum / len;
 
     return {
       brightness: Math.round(brightness),
@@ -343,6 +427,11 @@ export class SpectrogramAverager {
     this.activityHistory = [];
     this.toneVsNoiseHistory = [];
     this.highFreqContentHistory = [];
+    this.brightnessSum = 0;
+    this.dynamicRangeSum = 0;
+    this.activitySum = 0;
+    this.toneVsNoiseSum = 0;
+    this.highFreqContentSum = 0;
     this.lastUpdateTime = 0;
   }
 }
@@ -352,6 +441,12 @@ export class FrequencyAverager {
   private midEnergyHistory: number[] = [];
   private highEnergyHistory: number[] = [];
   private peakFreqHistory: number[] = [];
+
+  // Running sums for O(1) average calculation
+  private bassEnergySum: number = 0;
+  private midEnergySum: number = 0;
+  private highEnergySum: number = 0;
+
   private readonly windowSize: number;
   private readonly updateInterval: number;
   private lastUpdateTime: number = 0;
@@ -378,13 +473,21 @@ export class FrequencyAverager {
     this.midEnergyHistory.push(frequencyData.midEnergy);
     this.highEnergyHistory.push(frequencyData.highEnergy);
     this.peakFreqHistory.push(frequencyData.peakFreq);
+
+    this.bassEnergySum += frequencyData.bassEnergy;
+    this.midEnergySum += frequencyData.midEnergy;
+    this.highEnergySum += frequencyData.highEnergy;
     
     // Maintain window size
     if (this.bassEnergyHistory.length > this.windowSize) {
-      this.bassEnergyHistory.shift();
-      this.midEnergyHistory.shift();
-      this.highEnergyHistory.shift();
+      const oldBassEnergy = this.bassEnergyHistory.shift()!;
+      const oldMidEnergy = this.midEnergyHistory.shift()!;
+      const oldHighEnergy = this.highEnergyHistory.shift()!;
       this.peakFreqHistory.shift();
+
+      this.bassEnergySum -= oldBassEnergy;
+      this.midEnergySum -= oldMidEnergy;
+      this.highEnergySum -= oldHighEnergy;
     }
     
     return true;
@@ -402,12 +505,16 @@ export class FrequencyAverager {
       };
     }
 
+    const len = this.bassEnergyHistory.length;
+
     // Use simple average for dB values (already logarithmic)
-    const bassEnergy = this.bassEnergyHistory.reduce((sum, val) => sum + val, 0) / this.bassEnergyHistory.length;
-    const midEnergy = this.midEnergyHistory.reduce((sum, val) => sum + val, 0) / this.midEnergyHistory.length;
-    const highEnergy = this.highEnergyHistory.reduce((sum, val) => sum + val, 0) / this.highEnergyHistory.length;
+    const bassEnergy = this.bassEnergySum / len;
+    const midEnergy = this.midEnergySum / len;
+    const highEnergy = this.highEnergySum / len;
     
     // Use median for peak frequency (more stable than average)
+    // We cannot easily do running median with O(1), so this remains O(N log N).
+    // The array length is small (windowSize), typically < 20, so sort is acceptable.
     const sortedPeaks = [...this.peakFreqHistory].sort((a, b) => a - b);
     const peakFreq = sortedPeaks[Math.floor(sortedPeaks.length / 2)];
 
@@ -446,6 +553,9 @@ export class FrequencyAverager {
     this.midEnergyHistory = [];
     this.highEnergyHistory = [];
     this.peakFreqHistory = [];
+    this.bassEnergySum = 0;
+    this.midEnergySum = 0;
+    this.highEnergySum = 0;
     this.lastUpdateTime = 0;
   }
 }
