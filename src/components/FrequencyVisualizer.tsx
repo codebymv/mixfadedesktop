@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { InsightMetricCard } from './analysis/InsightMetricCard';
 import { formatFrequency, formatMixPercent, formatPeakBandLabel, formatSignedDb, formatSpectralBalanceLabel, getMixToneClass, getPeakBandToneClass, getSpectralBalanceToneClass } from '../utils/analysisFormatters';
+import { calculateFrequencyMetrics } from '../utils/audioAnalysis';
 
 interface FrequencyVisualizerProps {
   frequencyData: Float32Array; // Array of frequency data (e.g., from AnalyserNode)
@@ -12,89 +13,7 @@ interface FrequencyVisualizerProps {
 export function FrequencyVisualizer({ frequencyData, isActive, isPlaying, crossfadeVolume = 1 }: FrequencyVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Calculate frequency analysis metrics
-  const calculateFrequencyMetrics = () => {
-    if (!frequencyData || frequencyData.length === 0 || !isActive || !isPlaying) {
-      return {
-        bassEnergy: -60,
-        midEnergy: -60,
-        highEnergy: -60,
-        peakFreq: 0,
-        peakFreqBand: 'bass' as const,
-        spectralBalance: 'SILENT' as const
-      };
-    }
-
-    const sampleRate = 48000;
-    const nyquistFreq = sampleRate / 2;
-    const freqResolution = nyquistFreq / frequencyData.length;
-
-    // Use the same approach as the visual spectrum for consistency
-    let bassMax = -Infinity, midMax = -Infinity, highMax = -Infinity;
-    let bassSum = 0, midSum = 0, highSum = 0;
-    let bassCount = 0, midCount = 0, highCount = 0;
-    let peakMagnitude = -Infinity;
-    let peakFreq = 0;
-
-    for (let i = 0; i < frequencyData.length; i++) {
-      const freq = i * freqResolution;
-      const magnitudeDb = frequencyData[i]; // Raw dB value from analyser
-
-      // Track peak frequency
-      if (magnitudeDb > peakMagnitude) {
-        peakMagnitude = magnitudeDb;
-        peakFreq = freq;
-      }
-
-      // Find maximum values in each band (like the visual does)
-      // and also accumulate for averaging
-      if (freq >= 20 && freq < 200) { // Bass
-        bassMax = Math.max(bassMax, magnitudeDb);
-        bassSum += magnitudeDb;
-        bassCount++;
-      } else if (freq >= 200 && freq < 2000) { // Mid  
-        midMax = Math.max(midMax, magnitudeDb);
-        midSum += magnitudeDb;
-        midCount++;
-      } else if (freq >= 2000 && freq <= nyquistFreq) { // High
-        highMax = Math.max(highMax, magnitudeDb);
-        highSum += magnitudeDb;
-        highCount++;
-      }
-    }
-
-    // Use a blend of maximum and average for more representative values
-    const bassEnergy = bassCount > 0 ? Math.max(bassMax, bassSum / bassCount) : -60;
-    const midEnergy = midCount > 0 ? Math.max(midMax, midSum / midCount) : -60;
-    const highEnergy = highCount > 0 ? Math.max(highMax, highSum / highCount) : -60;
-
-    // Determine which frequency band the peak belongs to
-    let peakFreqBand = 'bass';
-    if (peakFreq >= 200 && peakFreq < 2000) {
-      peakFreqBand = 'mid';
-    } else if (peakFreq >= 2000 && peakFreq < 8000) {
-      peakFreqBand = 'upperMid';
-    } else if (peakFreq >= 8000) {
-      peakFreqBand = 'high';
-    }
-
-    // Determine spectral balance
-    let spectralBalance = 'BALANCED';
-    const bassToHigh = bassEnergy - highEnergy;
-    if (bassToHigh > 6) spectralBalance = 'BASS-HEAVY';
-    else if (bassToHigh < -6) spectralBalance = 'BRIGHT';
-
-    return {
-      bassEnergy: Math.max(-60, bassEnergy),
-      midEnergy: Math.max(-60, midEnergy), 
-      highEnergy: Math.max(-60, highEnergy),
-      peakFreq: Math.round(peakFreq),
-      peakFreqBand: peakFreqBand as any,
-      spectralBalance: spectralBalance as any
-    };
-  };
-
-  const metrics = calculateFrequencyMetrics();
+  const metrics = calculateFrequencyMetrics(frequencyData, isActive, isPlaying);
   const mixToneClass = getMixToneClass(crossfadeVolume, isPlaying);
   const transportLabel = crossfadeVolume === 0 ? 'MUTED' : isPlaying ? 'PLAYING' : 'PAUSED';
 
