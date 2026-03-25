@@ -116,5 +116,31 @@ describe('useAudioContext Hook', () => {
         });
       }).not.toThrow();
     });
+
+    it('should ignore errors when closing audio context during cleanup', async () => {
+      const { result } = renderHook(() => useAudioContext());
+
+      await act(async () => {
+        await result.current.setupAudioContext(mockAudioElement as any, 1, false, 1);
+      });
+
+      const nodes = result.current.getNodes();
+      const audioContext = nodes.audioContext;
+
+      // Mock the close method to throw an error
+      if (audioContext) {
+        audioContext.close = jest.fn().mockImplementation(() => {
+          throw new Error('Close failed');
+        });
+      }
+
+      expect(() => {
+        act(() => {
+          result.current.cleanup();
+        });
+      }).not.toThrow();
+
+      expect(result.current.isSetup()).toBe(false);
+    });
   });
 });
