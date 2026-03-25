@@ -143,28 +143,28 @@ function runBenchmark() {
   for (let i = 0; i < iterations; i++) {
     originalGenerateStereoWaveformData(bufferStereo);
   }
-  let originalStereoTime = performance.now() - start;
+  const originalStereoTime = performance.now() - start;
 
   console.log("Running Optimized Stereo...");
   start = performance.now();
   for (let i = 0; i < iterations; i++) {
     optimizedGenerateStereoWaveformData(bufferStereo);
   }
-  let optimizedStereoTime = performance.now() - start;
+  const optimizedStereoTime = performance.now() - start;
 
   console.log("Running Original Mono...");
   start = performance.now();
   for (let i = 0; i < iterations; i++) {
     originalGenerateStereoWaveformData(bufferMono);
   }
-  let originalMonoTime = performance.now() - start;
+  const originalMonoTime = performance.now() - start;
 
   console.log("Running Optimized Mono...");
   start = performance.now();
   for (let i = 0; i < iterations; i++) {
     optimizedGenerateStereoWaveformData(bufferMono);
   }
-  let optimizedMonoTime = performance.now() - start;
+  const optimizedMonoTime = performance.now() - start;
 
   console.log(`\nResults (Total time for ${iterations} iterations):`);
   console.log(`Stereo Original: ${originalStereoTime.toFixed(2)}ms`);
