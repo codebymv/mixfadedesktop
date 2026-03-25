@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain, nativeImage, shell } from 'electron';
+import { app, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain, nativeImage, shell, session } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -155,6 +155,21 @@ if (process.platform === 'win32') {
 
 // This method will be called when Electron has finished initialization
 app.whenReady().then(() => {
+  // Set up Content Security Policy (CSP)
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    // Basic CSP that allows standard React/Vite functionality but restricts external execution
+    const csp = isDev
+      ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: ws://localhost:* http://localhost:*;"
+      : "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; media-src 'self' blob: data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none';";
+
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [csp]
+      }
+    });
+  });
+
   console.log('MixFade app starting with icon from:', path.join(__dirname, '..', '..', 'public', 'mixfade_icon.png'));
 
   createWindow();
