@@ -1,12 +1,11 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { Music, Activity, ChevronDown, ChevronUp, TrendingUp, Radio, Waves } from 'lucide-react';
+import { Activity, ChevronDown, ChevronUp, TrendingUp, Radio, Waves } from 'lucide-react';
 import { AudioLevels, StereoAnalysis, FrequencyAnalysis, SpectrogramAnalysis, RMSAverager, FrequencyAverager, StereoAverager, SpectrogramAverager, SpectrogramBuffer, calculateFrequencyMetrics, calculateSpectrogramMetrics } from '../../utils/audioAnalysis';
 import { LevelsAnalysisSection } from '../analysis/LevelsAnalysisSection';
 import { FrequencyAnalysisSection } from '../analysis/FrequencyAnalysisSection';
 import { StereoAnalysisSection } from '../analysis/StereoAnalysisSection';
 import { SpectrogramAnalysisSection } from '../analysis/SpectrogramAnalysisSection';
 import { formatDb, linearToDb, formatCorrelation, formatStereoWidth, formatBrightness, formatActivity } from '../../utils/analysisFormatters';
-import { useColorTheme } from '../../hooks/useColorTheme';
 
 // ─── Collapsible section state (persisted to localStorage) ───────────────────
 const COLLAPSED_KEY = 'mixfade_analysis_collapsed';
@@ -24,7 +23,11 @@ function useCollapsedSections() {
   const toggle = useCallback((id: string) => {
     setCollapsed(prev => {
       const next = { ...prev, [id]: !prev[id] };
-      try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next)); } catch {}
+      try {
+        localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next));
+      } catch (e) {
+        console.error('Failed to save state to localStorage:', e);
+      }
       return next;
     });
   }, []);
@@ -34,7 +37,6 @@ function useCollapsedSections() {
 
 // ─── CollapsibleCard ─────────────────────────────────────────────────────────
 interface CollapsibleCardProps {
-  id: string;
   title: string;
   icon: React.ReactNode;
   summary: React.ReactNode;
@@ -43,7 +45,7 @@ interface CollapsibleCardProps {
   children: React.ReactNode;
 }
 
-function CollapsibleCard({ id, title, icon, summary, isCollapsed, onToggle, children }: CollapsibleCardProps) {
+function CollapsibleCard({ title, icon, summary, isCollapsed, onToggle, children }: CollapsibleCardProps) {
   return (
     <div className="bg-slate-800 rounded-md overflow-hidden">
       {/* Clickable header bar */}
@@ -125,7 +127,6 @@ export function AnalysisPanel({
   volumeB = 0
 }: AnalysisPanelProps) {
   const { collapsed, toggle } = useCollapsedSections();
-  const colorTheme = useColorTheme();
   const [recentAnalysis, setRecentAnalysis] = useState<AnalysisSnapshot[]>([]);
   
   // Smoothed values for A and B tracks (like LevelMeter)
@@ -408,8 +409,6 @@ export function AnalysisPanel({
   useEffect(() => {
     // Crossfade started (transitioned from false to true)
     if (isTransitioning && !prevIsTransitioning) {
-      console.log('🎛️ Crossfade started - capturing pre-crossfade snapshots');
-      
       // Clear any existing pre-crossfade snapshots first
       setPreCrossfadeTrackA(null);
       setPreCrossfadeTrackB(null);
@@ -417,49 +416,39 @@ export function AnalysisPanel({
       // Capture current smoothed analysis data before crossfade affects volumes
       if (trackASmoothed) {
         setPreCrossfadeTrackA(trackASmoothed);
-        console.log('📸 Captured Track A pre-crossfade:', trackASmoothed);
       }
       
       if (trackBSmoothed) {
         setPreCrossfadeTrackB(trackBSmoothed);
-        console.log('📸 Captured Track B pre-crossfade:', trackBSmoothed);
       }
       
       if (trackAFreqSmoothed) {
         setPreCrossfadeFreqA(trackAFreqSmoothed);
-        console.log('📸 Captured Track A frequency pre-crossfade:', trackAFreqSmoothed);
       }
       
       if (trackBFreqSmoothed) {
         setPreCrossfadeFreqB(trackBFreqSmoothed);
-        console.log('📸 Captured Track B frequency pre-crossfade:', trackBFreqSmoothed);
       }
       
       if (trackAStereoSmoothed) {
         setPreCrossfadeStereoA(trackAStereoSmoothed);
-        console.log('📸 Captured Track A stereo pre-crossfade:', trackAStereoSmoothed);
       }
       
       if (trackBStereoSmoothed) {
         setPreCrossfadeStereoB(trackBStereoSmoothed);
-        console.log('📸 Captured Track B stereo pre-crossfade:', trackBStereoSmoothed);
       }
       
       if (trackASpectrogramSmoothed) {
         setPreCrossfadeSpectrogramA(trackASpectrogramSmoothed);
-        console.log('📸 Captured Track A spectrogram pre-crossfade:', trackASpectrogramSmoothed);
       }
       
       if (trackBSpectrogramSmoothed) {
         setPreCrossfadeSpectrogramB(trackBSpectrogramSmoothed);
-        console.log('📸 Captured Track B spectrogram pre-crossfade:', trackBSpectrogramSmoothed);
       }
     }
     
     // Crossfade ended (transitioned from true to false)
     if (!isTransitioning && prevIsTransitioning) {
-      console.log('🎛️ Crossfade ended - keeping pre-crossfade snapshots for inactive track');
-      
       // DON'T clear pre-crossfade snapshots immediately
       // Keep them to show meaningful analysis for the faded-out track
       // They will be cleared when a new crossfade starts or tracks change
@@ -471,7 +460,6 @@ export function AnalysisPanel({
 
   // Clear pre-crossfade snapshots when files change
   useEffect(() => {
-    console.log('🗑️ Files changed - clearing pre-crossfade snapshots');
     setPreCrossfadeTrackA(null);
     setPreCrossfadeTrackB(null);
     setPreCrossfadeFreqA(null);
@@ -545,7 +533,6 @@ export function AnalysisPanel({
     
     // CROSSFADE MODE: If crossfading, use pre-crossfade snapshots for meaningful comparison
     if (isTransitioning) {
-      console.log('🎛️ Using pre-crossfade snapshots during crossfade');
       return {
         id: 'crossfade',
         timestamp: Date.now(),
@@ -568,9 +555,6 @@ export function AnalysisPanel({
     
     // POST-CROSSFADE MODE: Use smart logic based on volume levels
     if ((isTrackAPlaying || isTrackBPlaying) && (preCrossfadeTrackA || preCrossfadeTrackB)) {
-      console.log('🎛️ Post-crossfade: Using smart track selection based on volumes');
-      console.log(`Volume A: ${volumeA}, Volume B: ${volumeB}`);
-      
       return {
         id: 'post-crossfade',
         timestamp: Date.now(),
@@ -717,7 +701,6 @@ export function AnalysisPanel({
           <div className="space-y-1">
             {/* ── Levels ── */}
             <CollapsibleCard
-              id="levels"
               title="Levels"
               icon={<TrendingUp size={12} />}
               summary={levelsSummary}
@@ -735,7 +718,6 @@ export function AnalysisPanel({
 
             {/* ── Frequencies ── */}
             <CollapsibleCard
-              id="frequencies"
               title="Frequencies"
               icon={<Activity size={12} />}
               summary={freqSummary}
@@ -753,7 +735,6 @@ export function AnalysisPanel({
 
             {/* ── Stereo ── */}
             <CollapsibleCard
-              id="stereo"
               title="Stereo"
               icon={<Radio size={12} />}
               summary={stereoSummary}
@@ -771,7 +752,6 @@ export function AnalysisPanel({
 
             {/* ── Spectrogram ── */}
             <CollapsibleCard
-              id="spectrogram"
               title="Spectrogram"
               icon={<Waves size={12} />}
               summary={spectrogramSummary}
