@@ -19,48 +19,61 @@ export const useWaveform = () => {
     
     // Get channel data
     const leftChannelData = audioBuffer.getChannelData(0);
-    const rightChannelData = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : leftChannelData;
+    const isStereo = audioBuffer.numberOfChannels > 1;
+    const rightChannelData = isStereo ? audioBuffer.getChannelData(1) : leftChannelData;
     
-    // Process left channel
     const leftProcessedData = new Float32Array(width * 2);
+    const rightProcessedData = new Float32Array(width * 2);
+
     // Optimization: Don't read every single sample if there are too many per pixel
     const step = Math.max(1, Math.floor(samplesPerPixel / 100)); 
 
-    for (let x = 0; x < width; x++) {
-      const startSample = x * samplesPerPixel;
-      const endSample = Math.min(startSample + samplesPerPixel, samples);
-      
-      let min = 0;
-      let max = 0;
-      
-      // Use the step size to skip samples, drastically reducing iterations on long files
-      for (let i = startSample; i < endSample; i += step) {
-        const sample = leftChannelData[i];
-        if (sample < min) min = sample;
-        if (sample > max) max = sample;
+    if (isStereo) {
+      for (let x = 0; x < width; x++) {
+        const startSample = x * samplesPerPixel;
+        const endSample = Math.min(startSample + samplesPerPixel, samples);
+
+        let leftMin = 0;
+        let leftMax = 0;
+        let rightMin = 0;
+        let rightMax = 0;
+
+        // Use the step size to skip samples, drastically reducing iterations on long files
+        for (let i = startSample; i < endSample; i += step) {
+          const leftSample = leftChannelData[i];
+          if (leftSample < leftMin) leftMin = leftSample;
+          else if (leftSample > leftMax) leftMax = leftSample;
+
+          const rightSample = rightChannelData[i];
+          if (rightSample < rightMin) rightMin = rightSample;
+          else if (rightSample > rightMax) rightMax = rightSample;
+        }
+
+        leftProcessedData[x * 2] = leftMin;
+        leftProcessedData[x * 2 + 1] = leftMax;
+        rightProcessedData[x * 2] = rightMin;
+        rightProcessedData[x * 2 + 1] = rightMax;
       }
-      
-      leftProcessedData[x * 2] = min;
-      leftProcessedData[x * 2 + 1] = max;
-    }
-    
-    // Process right channel
-    const rightProcessedData = new Float32Array(width * 2);
-    for (let x = 0; x < width; x++) {
-      const startSample = x * samplesPerPixel;
-      const endSample = Math.min(startSample + samplesPerPixel, samples);
-      
-      let min = 0;
-      let max = 0;
-      
-      for (let i = startSample; i < endSample; i += step) {
-        const sample = rightChannelData[i];
-        if (sample < min) min = sample;
-        if (sample > max) max = sample;
+    } else {
+      for (let x = 0; x < width; x++) {
+        const startSample = x * samplesPerPixel;
+        const endSample = Math.min(startSample + samplesPerPixel, samples);
+
+        let min = 0;
+        let max = 0;
+
+        for (let i = startSample; i < endSample; i += step) {
+          const sample = leftChannelData[i];
+          if (sample < min) min = sample;
+          else if (sample > max) max = sample;
+        }
+
+        leftProcessedData[x * 2] = min;
+        leftProcessedData[x * 2 + 1] = max;
+        // In mono, right channel data is identical to left
+        rightProcessedData[x * 2] = min;
+        rightProcessedData[x * 2 + 1] = max;
       }
-      
-      rightProcessedData[x * 2] = min;
-      rightProcessedData[x * 2 + 1] = max;
     }
     
     leftWaveformData.current = leftProcessedData;
