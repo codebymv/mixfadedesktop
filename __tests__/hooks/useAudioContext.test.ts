@@ -116,5 +116,57 @@ describe('useAudioContext Hook', () => {
         });
       }).not.toThrow();
     });
+
+    it('should ignore disconnect errors during cleanup', async () => {
+      const { result } = renderHook(() => useAudioContext());
+
+      await act(async () => {
+        await result.current.setupAudioContext(mockAudioElement as any, 1, false, 1);
+      });
+
+      const nodes = result.current.getNodes();
+
+      // Mock disconnect to throw an error
+      const mockError = new Error('disconnect error');
+
+      if (nodes.sourceNode) {
+        nodes.sourceNode.disconnect = jest.fn().mockImplementation(() => { throw mockError; });
+      }
+      if (nodes.analyserNode) {
+        nodes.analyserNode.disconnect = jest.fn().mockImplementation(() => { throw mockError; });
+      }
+      if (nodes.gainNode) {
+        nodes.gainNode.disconnect = jest.fn().mockImplementation(() => { throw mockError; });
+      }
+      if (nodes.splitterNode) {
+        nodes.splitterNode.disconnect = jest.fn().mockImplementation(() => { throw mockError; });
+      }
+      if (nodes.leftAnalyser) {
+        nodes.leftAnalyser.disconnect = jest.fn().mockImplementation(() => { throw mockError; });
+      }
+      if (nodes.rightAnalyser) {
+        nodes.rightAnalyser.disconnect = jest.fn().mockImplementation(() => { throw mockError; });
+      }
+      if (nodes.audioContext) {
+        nodes.audioContext.close = jest.fn().mockImplementation(() => { throw mockError; });
+      }
+
+      expect(() => {
+        act(() => {
+          result.current.cleanup();
+        });
+      }).not.toThrow();
+
+      // Verify cleanup was still performed (nodes are nulled out and state reset)
+      expect(result.current.isSetup()).toBe(false);
+      const cleanedNodes = result.current.getNodes();
+      expect(cleanedNodes.sourceNode).toBeNull();
+      expect(cleanedNodes.analyserNode).toBeNull();
+      expect(cleanedNodes.gainNode).toBeNull();
+      expect(cleanedNodes.splitterNode).toBeNull();
+      expect(cleanedNodes.leftAnalyser).toBeNull();
+      expect(cleanedNodes.rightAnalyser).toBeNull();
+      expect(cleanedNodes.audioContext).toBeNull();
+    });
   });
 });
