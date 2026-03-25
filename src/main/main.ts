@@ -88,6 +88,11 @@ function createWindow() {
   // Set window icon after creation
   setWindowIcon(mainWindow);
 
+  // Prevent creation of new windows for security
+  mainWindow.webContents.setWindowOpenHandler(() => {
+    return { action: 'deny' };
+  });
+
   // Load the app
   const indexPath = isDev 
     ? 'http://localhost:5173/' 
@@ -253,6 +258,11 @@ function setupIPC() {
     const baseUrl = isDev
       ? 'http://localhost:5173/'
       : `file://${path.join(__dirname, '..', '..', 'dist-renderer', 'index.html')}`;
+
+    // Prevent creation of new windows for security
+    visualizerWindow.webContents.setWindowOpenHandler(() => {
+      return { action: 'deny' };
+    });
 
     visualizerWindow.loadURL(`${baseUrl}?visualizer=1`).catch((err: unknown) => {
       console.error('Failed to load visualizer window URL:', err);
