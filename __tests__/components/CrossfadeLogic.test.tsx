@@ -19,7 +19,18 @@ jest.mock('../../src/components/WaveformPlayer', () => {
       getVolume: jest.fn(() => 1),
       mute: jest.fn(),
       unmute: jest.fn(),
-      isMuted: jest.fn(() => false)
+      isMuted: jest.fn(() => false),
+      setLoop: jest.fn(),
+      getLoop: jest.fn(() => false),
+      getAudioNodes: jest.fn(() => ({
+        audioContext: null,
+        sourceNode: null,
+        analyserNode: null,
+        gainNode: null,
+        splitterNode: null,
+        leftAnalyser: null,
+        rightAnalyser: null
+      }))
     }));
     
     return (
@@ -140,8 +151,8 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
         </SettingsProvider>
       );
 
-      expect(screen.getByTestId('file-upload-audio-a')).toBeInTheDocument();
-      expect(screen.getByTestId('file-upload-audio-b')).toBeInTheDocument();
+      expect(screen.getByTestId('file-upload-deck-a')).toBeInTheDocument();
+      expect(screen.getByTestId('file-upload-deck-b')).toBeInTheDocument();
     });
 
     it('should show crossfade placeholder when no files are loaded', () => {
@@ -163,7 +174,7 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
       );
 
       // Upload file to Track A
-      const fileInputA = screen.getByTestId('file-input-audio-a');
+      const fileInputA = screen.getByTestId('file-input-deck-a');
       await act(async () => {
         fireEvent.change(fileInputA, { target: { files: [testFileA] } });
       });
@@ -171,7 +182,7 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
       expect(screen.getByText('File: track-a.mp3')).toBeInTheDocument();
 
       // Upload file to Track B
-      const fileInputB = screen.getByTestId('file-input-audio-b');
+      const fileInputB = screen.getByTestId('file-input-deck-b');
       await act(async () => {
         fireEvent.change(fileInputB, { target: { files: [testFileB] } });
       });
@@ -187,8 +198,8 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
       );
 
       // Upload files
-      const fileInputA = screen.getByTestId('file-input-audio-a');
-      const fileInputB = screen.getByTestId('file-input-audio-b');
+      const fileInputA = screen.getByTestId('file-input-deck-a');
+      const fileInputB = screen.getByTestId('file-input-deck-b');
       
       await act(async () => {
         fireEvent.change(fileInputA, { target: { files: [testFileA] } });
@@ -197,8 +208,8 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
 
       expect(screen.getByTestId('waveform-player-green')).toBeInTheDocument();
       expect(screen.getByTestId('waveform-player-purple')).toBeInTheDocument();
-      expect(screen.getByText('WaveformPlayer - Audio A')).toBeInTheDocument();
-      expect(screen.getByText('WaveformPlayer - Audio B')).toBeInTheDocument();
+      expect(screen.getByText('WaveformPlayer - Deck A')).toBeInTheDocument();
+      expect(screen.getByText('WaveformPlayer - Deck B')).toBeInTheDocument();
     });
 
     it('should render analysis tabs for both tracks', async () => {
@@ -209,16 +220,16 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
       );
 
       // Upload files
-      const fileInputA = screen.getByTestId('file-input-audio-a');
-      const fileInputB = screen.getByTestId('file-input-audio-b');
+      const fileInputA = screen.getByTestId('file-input-deck-a');
+      const fileInputB = screen.getByTestId('file-input-deck-b');
       
       await act(async () => {
         fireEvent.change(fileInputA, { target: { files: [testFileA] } });
         fireEvent.change(fileInputB, { target: { files: [testFileB] } });
       });
 
-      expect(screen.getByTestId('analysis-tabs-audio-a-analysis')).toBeInTheDocument();
-      expect(screen.getByTestId('analysis-tabs-audio-b-analysis')).toBeInTheDocument();
+      expect(screen.getByTestId('analysis-tabs-deck-a-analysis')).toBeInTheDocument();
+      expect(screen.getByTestId('analysis-tabs-deck-b-analysis')).toBeInTheDocument();
     });
   });
 
@@ -231,8 +242,8 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
       );
 
       // Upload both files
-      const fileInputA = screen.getByTestId('file-input-audio-a');
-      const fileInputB = screen.getByTestId('file-input-audio-b');
+      const fileInputA = screen.getByTestId('file-input-deck-a');
+      const fileInputB = screen.getByTestId('file-input-deck-b');
       
       await act(async () => {
         fireEvent.change(fileInputA, { target: { files: [testFileA] } });
@@ -251,7 +262,7 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
       );
 
       // Upload only file A
-      const fileInputA = screen.getByTestId('file-input-audio-a');
+      const fileInputA = screen.getByTestId('file-input-deck-a');
       await act(async () => {
         fireEvent.change(fileInputA, { target: { files: [testFileA] } });
       });
@@ -270,8 +281,8 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
       );
 
       // Upload both files
-      const fileInputA = screen.getByTestId('file-input-audio-a');
-      const fileInputB = screen.getByTestId('file-input-audio-b');
+      const fileInputA = screen.getByTestId('file-input-deck-a');
+      const fileInputB = screen.getByTestId('file-input-deck-b');
       
       await act(async () => {
         fireEvent.change(fileInputA, { target: { files: [testFileA] } });
@@ -329,8 +340,8 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
 
     it('should pass crossfade volumes to AnalysisTabs components', () => {
       // Check initial volumes in AnalysisTabs components
-      const analysisTabsA = screen.getByTestId('analysis-tabs-audio-a-analysis');
-      const analysisTabsB = screen.getByTestId('analysis-tabs-audio-b-analysis');
+      const analysisTabsA = screen.getByTestId('analysis-tabs-deck-a-analysis');
+      const analysisTabsB = screen.getByTestId('analysis-tabs-deck-b-analysis');
       
       expect(analysisTabsA).toHaveTextContent('Crossfade Volume: 1');
       expect(analysisTabsB).toHaveTextContent('Crossfade Volume: 0');
@@ -346,8 +357,8 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
       );
 
       // Upload both files
-      const fileInputA = screen.getByTestId('file-input-audio-a');
-      const fileInputB = screen.getByTestId('file-input-audio-b');
+      const fileInputA = screen.getByTestId('file-input-deck-a');
+      const fileInputB = screen.getByTestId('file-input-deck-b');
       
       await act(async () => {
         fireEvent.change(fileInputA, { target: { files: [testFileA] } });
@@ -475,8 +486,8 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
       );
 
       // Upload both files
-      const fileInputA = screen.getByTestId('file-input-audio-a');
-      const fileInputB = screen.getByTestId('file-input-audio-b');
+      const fileInputA = screen.getByTestId('file-input-deck-a');
+      const fileInputB = screen.getByTestId('file-input-deck-b');
       
       await act(async () => {
         fireEvent.change(fileInputA, { target: { files: [testFileA] } });
@@ -567,8 +578,8 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
       );
 
       // Upload both files
-      const fileInputA = screen.getByTestId('file-input-audio-a');
-      const fileInputB = screen.getByTestId('file-input-audio-b');
+      const fileInputA = screen.getByTestId('file-input-deck-a');
+      const fileInputB = screen.getByTestId('file-input-deck-b');
       
       await act(async () => {
         fireEvent.change(fileInputA, { target: { files: [testFileA] } });
@@ -677,7 +688,7 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
       );
 
       // Upload only Track A
-      const fileInputA = screen.getByTestId('file-input-audio-a');
+      const fileInputA = screen.getByTestId('file-input-deck-a');
       await act(async () => {
         fireEvent.change(fileInputA, { target: { files: [testFileA] } });
       });
@@ -695,8 +706,8 @@ describe('Dual-Track Architecture & Crossfade Logic', () => {
       );
 
       // Upload both files first
-      const fileInputA = screen.getByTestId('file-input-audio-a');
-      const fileInputB = screen.getByTestId('file-input-audio-b');
+      const fileInputA = screen.getByTestId('file-input-deck-a');
+      const fileInputB = screen.getByTestId('file-input-deck-b');
       
       await act(async () => {
         fireEvent.change(fileInputA, { target: { files: [testFileA] } });

@@ -186,8 +186,6 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     // Only initialize if file actually changed
     if (currentFile.current === file) return;
     
-    console.log('WaveformPlayer: Initializing audio for:', file?.name || 'null');
-    
     // Cleanup previous resources
     audioContext.cleanup();
     waveform.clearWaveformData();
@@ -209,12 +207,10 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
         if (fileUrl.current) {
           URL.revokeObjectURL(fileUrl.current);
           fileUrl.current = null;
-          console.log('WaveformPlayer: Revoked old object URL.');
         }
 
         // Create new blob URL and keep reference
         fileUrl.current = URL.createObjectURL(file);
-        console.log('WaveformPlayer: Created new object URL:', fileUrl.current);
 
         // Set up audio element
         if (audioRef.current) {
@@ -222,35 +218,27 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
           audioRef.current.volume = crossfadeVolume === 0 ? 0 : (isMuted ? 0 : volume);
           audioRef.current.preload = 'auto';
           audioRef.current.load();
-          console.log('WaveformPlayer: Audio element source set and loaded.');
         }
 
         // Decode audio for waveform and metadata
-        console.log('WaveformPlayer: Starting audio decode...');
         const arrayBuffer = await file.arrayBuffer();
-        console.log('WaveformPlayer: Got array buffer, size:', arrayBuffer.byteLength);
         
         const tempContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
         const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
-        console.log('WaveformPlayer: Audio decoded successfully.');
 
         // Extract metadata
         const extractedMetadata = await metadata.extractAudioMetadata(audioBuffer, file);
         setAudioMetadata(extractedMetadata);
-        console.log('WaveformPlayer: Audio metadata:', extractedMetadata);
 
         await tempContext.close();
-        console.log('WaveformPlayer: Temporary audio context closed.');
 
         // Generate stereo waveform data
         await waveform.generateStereoWaveformData(audioBuffer);
         setDuration(audioBuffer.duration);
-        console.log('WaveformPlayer: Waveform data generated and duration set.');
 
         // Initial state update
         setTimeout(() => {
           setIsLoading(false);
-          console.log('WaveformPlayer: Audio initialized successfully.');
         }, 100);
 
       } catch (error) {
@@ -274,7 +262,6 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     if (!audio) return;
 
     const handleCanPlay = () => {
-      console.log('WaveformPlayer: Audio can play.');
       setCanPlay(true);
       
       // Set up audio context when audio is ready
@@ -286,7 +273,6 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     };
 
     const handleEnded = () => {
-      console.log('WaveformPlayer: Audio ended.');
       setIsPlaying(false);
       setCurrentTime(0);
     };
@@ -298,12 +284,10 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     };
 
     const handleLoadStart = () => {
-      console.log('WaveformPlayer: Audio load started.');
       setIsLoading(true);
     };
 
     const handleLoadedData = () => {
-      console.log('WaveformPlayer: Audio data loaded.');
       setDuration(audio.duration);
     };
 
@@ -339,11 +323,9 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
       if (isPlaying) {
         await audio.pause();
         setIsPlaying(false);
-        console.log('WaveformPlayer: Playback paused.');
       } else {
         await audio.play();
         setIsPlaying(true);
-        console.log('WaveformPlayer: Playback started.');
       }
     } catch (error) {
       console.error('WaveformPlayer: Playback error:', error);
@@ -381,93 +363,6 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
       }
     }
   }, [canPlay, duration, isLinkedPlayback, onTimeSeek]);
-
-  // Initialize audio when file changes
-  useEffect(() => {
-    // Only initialize if file actually changed
-    if (currentFile.current === file) return;
-    
-    console.log('WaveformPlayer: Initializing audio for:', file?.name || 'null');
-    
-    // Cleanup previous resources
-    audioContext.cleanup();
-    waveform.clearWaveformData();
-    
-    // Reset state
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setIsLoading(true);
-    setError(null);
-    setCanPlay(false);
-    setAudioMetadata(null);
-    
-    currentFile.current = file;
-    
-    const initializeAudio = async () => {
-      try {
-        // Clean up old URL
-        if (fileUrl.current) {
-          URL.revokeObjectURL(fileUrl.current);
-          fileUrl.current = null;
-          console.log('WaveformPlayer: Revoked old object URL.');
-        }
-
-        // Create new blob URL and keep reference
-        fileUrl.current = URL.createObjectURL(file);
-        console.log('WaveformPlayer: Created new object URL:', fileUrl.current);
-
-        // Set up audio element
-        if (audioRef.current) {
-          audioRef.current.src = fileUrl.current;
-          audioRef.current.volume = crossfadeVolume === 0 ? 0 : (isMuted ? 0 : volume);
-          audioRef.current.preload = 'auto';
-          audioRef.current.load();
-          console.log('WaveformPlayer: Audio element source set and loaded.');
-        }
-
-        // Decode audio for waveform and metadata
-        console.log('WaveformPlayer: Starting audio decode...');
-        const arrayBuffer = await file.arrayBuffer();
-        console.log('WaveformPlayer: Got array buffer, size:', arrayBuffer.byteLength);
-        
-        const tempContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-        const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
-        console.log('WaveformPlayer: Audio decoded successfully.');
-
-        // Extract metadata
-        const extractedMetadata = await metadata.extractAudioMetadata(audioBuffer, file);
-        setAudioMetadata(extractedMetadata);
-        console.log('WaveformPlayer: Audio metadata:', extractedMetadata);
-
-        await tempContext.close();
-        console.log('WaveformPlayer: Temporary audio context closed.');
-
-        // Generate stereo waveform data
-        await waveform.generateStereoWaveformData(audioBuffer);
-        setDuration(audioBuffer.duration);
-        console.log('WaveformPlayer: Waveform data generated and duration set.');
-
-        // Initial state update
-        setTimeout(() => {
-          setIsLoading(false);
-          console.log('WaveformPlayer: Audio initialized successfully.');
-        }, 100);
-
-      } catch (error) {
-        console.error('WaveformPlayer: Failed to initialize audio:', error);
-        setError(`Failed to load audio file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setIsLoading(false);
-      }
-    };
-
-    initializeAudio();
-
-    // Cleanup on unmount or file change
-    return () => {
-      audioContext.cleanup();
-    };
-  }, [file, audioContext, waveform, metadata, crossfadeVolume, isMuted, volume]);
 
   // Expose playback controls to parent
   useImperativeHandle(ref, () => ({

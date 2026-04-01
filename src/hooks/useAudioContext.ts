@@ -72,7 +72,6 @@ export const useAudioContext = () => {
         gainNode.current.gain.setValueAtTime(finalVolume, audioContext.current.currentTime);
         
         isAudioContextSetup.current = true;
-        console.log('Stereo audio context setup complete');
       }
     } catch (error) {
       console.warn('Audio context setup failed:', error);
@@ -95,8 +94,6 @@ export const useAudioContext = () => {
   }, []);
 
   const cleanup = useCallback(() => {
-    console.log('Cleaning up audio context resources...');
-    
     // Disconnect all Web Audio API nodes in proper order
     if (sourceNode.current) {
       try {
@@ -163,7 +160,6 @@ export const useAudioContext = () => {
     audioContext.current = null;
     isAudioContextSetup.current = false;
     
-    console.log('Audio context resources cleaned up.');
   }, []);
 
   const getNodes = useCallback((): AudioContextNodes => {

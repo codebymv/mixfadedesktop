@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Activity } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
 import { ABSwitch } from './components/ABSwitch';
@@ -7,33 +7,22 @@ import { AnalysisTabs } from './components/AnalysisTabs';
 import { AudioLevels, StereoAnalysis } from './utils/audioAnalysis';
 import { ActivityBar } from './components/ActivityBar';
 import { Sidebar } from './components/Sidebar';
-import { VisualizerMode, DEFAULT_VIS_SEED, getPresetEntryForSeed } from './components/VisualizerMode';
-import type { VisualizerBroadcastMessage } from './components/ExternalVisualizerWindow';
-import type { SavedSeed } from './components/sidebar/VisualizerPanel';
+import { VisualizerMode } from './components/VisualizerMode';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useApplyColorTheme } from './hooks/useColorTheme';
+import { useCrossfade } from './hooks/useCrossfade';
+import { useRecentFiles } from './hooks/useRecentFiles';
+import { useVisualizerState } from './hooks/useVisualizerState';
 import { useSettings } from './contexts/SettingsContext';
 import Header from './components/Header';
-import type { DeckSide, RecentFile } from './types/recentFile';
 
 type ActivityId = 'files' | 'analysis' | 'visualizer' | 'settings' | 'help';
-
-const getRecentFileId = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
 
 const ACCEPTED_AUDIO_EXTENSIONS = ['.wav', '.mp3', '.flac', '.aiff', '.aif', '.m4a', '.aac', '.ogg'];
 const isAcceptedAudioDrop = (file: File) => {
   const name = file.name.toLowerCase();
   return file.type.startsWith('audio/') || ACCEPTED_AUDIO_EXTENSIONS.some(ext => name.endsWith(ext));
 };
-
-const createRecentFileEntry = (file: File, lastUsedSide: DeckSide | null): RecentFile => ({
-  id: getRecentFileId(file),
-  name: file.name,
-  size: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-  lastModified: new Date(file.lastModified).toLocaleDateString(),
-  lastUsedSide,
-  file,
-});
 
 function App() {
   // Load settings
@@ -46,7 +35,6 @@ function App() {
 
   const [trackA, setTrackA] = useState<File | null>(null);
   const [trackB, setTrackB] = useState<File | null>(null);
-  const [activeTrack, setActiveTrack] = useState<'A' | 'B' | 'both'>('A');
   const [isTrackAPlaying, setIsTrackAPlaying] = useState(false);
   const [isTrackBPlaying, setIsTrackBPlaying] = useState(false);
   const [trackAAudioLevels, setTrackAAudioLevels] = useState<AudioLevels>({ left: 0, right: 0, leftRms: 0, rightRms: 0, rms: 0, lufs: -70, leftLufs: -70, rightLufs: -70 });
@@ -69,153 +57,78 @@ function App() {
   // Playback sync tracking
   const [isLinkedPlayback, setIsLinkedPlayback] = useState(false);
 
-  // Recent files state
-  const [recentFiles, setRecentFiles] = useState<RecentFile[]>([]);
-
-  // Crossfade state
-  const [volumeA, setVolumeA] = useState(1);
-  const [volumeB, setVolumeB] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false);
-  const [crossfadeDirection, setCrossfadeDirection] = useState<'A→B' | 'B→A' | null>(null);
-  const transitionRef = useRef<NodeJS.Timeout | null>(null);
-
   // Refs for controlling waveform players
   const waveformPlayerARef = useRef<WaveformPlayerRef>(null);
   const waveformPlayerBRef = useRef<WaveformPlayerRef>(null);
-  const openExternalVisualizerWindowRef = useRef<(() => void) | null>(null);
   const lastNonVisualizerActivityRef = useRef<ActivityId>('files');
+  const {
+    activeTrack,
+    volumeA,
+    volumeB,
+    isTransitioning,
+    crossfadeDirection: currentCrossfadeDirection,
+    handleTrackSwitch,
+  } = useCrossfade({
+    hasTrackA: Boolean(trackA),
+    hasTrackB: Boolean(trackB),
+    crossfadeTime: settings.audio.crossfadeTime,
+    crossfadeCurve: settings.audio.crossfadeCurve,
+    updateRate: settings.analysis.updateRate,
+  });
+  const {
+    recentFiles,
+    stageDroppedFiles,
+    setTrackAWithRecent,
+    setTrackBWithRecent,
+    loadFileFromRecent,
+  } = useRecentFiles({
+    recentFilesLimit: settings.files.recentFilesLimit,
+    setTrackA,
+    setTrackB,
+  });
 
   // Navigation state
   const [activeActivity, setActiveActivity] = useState<ActivityId>('files');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isVisualizerWindowOpen, setIsVisualizerWindowOpen] = useState(false);
-  const [visualizerSeed, setVisualizerSeed] = useState(DEFAULT_VIS_SEED);
-  const rollVisualizerSeed = useCallback(() => setVisualizerSeed((Math.random() * 0xFFFFFFFF) >>> 0), []);
-
-  // Saved seeds — persisted to localStorage
-  const SAVED_SEEDS_KEY = 'mixfade-vis-seeds';
-  const [savedVisualizerSeeds, setSavedVisualizerSeeds] = useState<SavedSeed[]>(() => {
-    try {
-      const stored = localStorage.getItem(SAVED_SEEDS_KEY);
-      return stored ? (JSON.parse(stored) as SavedSeed[]) : [];
-    } catch {
-      return [];
-    }
-  });
-  useEffect(() => {
-    localStorage.setItem(SAVED_SEEDS_KEY, JSON.stringify(savedVisualizerSeeds));
-  }, [savedVisualizerSeeds]);
-
-  const saveVisualizerSeed = useCallback(() => {
-    setSavedVisualizerSeeds(prev => {
-      if (prev.some(s => s.seed === visualizerSeed)) return prev; // no dupes
-      const [name] = getPresetEntryForSeed(visualizerSeed);
-      return [...prev, { id: Date.now().toString(), seed: visualizerSeed, name, savedAt: Date.now() }];
-    });
-  }, [visualizerSeed]);
-
-  const loadVisualizerSeed = useCallback((seed: number) => setVisualizerSeed(seed), []);
-
-  const deleteVisualizerSeed = useCallback((id: string) => {
-    setSavedVisualizerSeeds(prev => prev.filter(s => s.id !== id));
-  }, []);
-  const handleExternalVisualizerReady = useCallback((openExternalWindow: (() => void) | null) => {
-    openExternalVisualizerWindowRef.current = openExternalWindow;
-  }, []);
-  const handleExternalVisualizerWindowStateChange = useCallback((isOpen: boolean) => {
-    setIsVisualizerWindowOpen(isOpen);
-    if (isOpen && activeActivity === 'visualizer') {
-      setActiveActivity(lastNonVisualizerActivityRef.current);
-    }
-  }, [activeActivity]);
-  const visualizerAudioNodesA = waveformPlayerARef.current?.getAudioNodes() ?? null;
-  const visualizerAudioNodesB = waveformPlayerBRef.current?.getAudioNodes() ?? null;
-  const visualizerMixA = deckAMuted ? 0 : deckAVolume * volumeA;
-  const visualizerMixB = deckBMuted ? 0 : deckBVolume * volumeB;
 
   // Hoisted loop state for each deck
   const [deckALooping, setDeckALooping] = useState(false);
   const [deckBLooping, setDeckBLooping] = useState(false);
-  const toggleVisualizerLoop = useCallback(() => {
-    // Toggle the loop of whichever deck is dominant (mirrors VisualizerMode's sourceInput logic)
-    const aPlaying = isTrackAPlaying && Boolean(trackA);
-    const bPlaying = isTrackBPlaying && Boolean(trackB);
-    const dominant =
-      aPlaying && bPlaying ? (visualizerMixA >= visualizerMixB ? 'A' : 'B') :
-      aPlaying ? 'A' :
-      bPlaying ? 'B' :
-      trackA ? 'A' : 'B';
-    if (dominant === 'A') setDeckALooping(l => !l);
-    else setDeckBLooping(l => !l);
-  }, [isTrackAPlaying, isTrackBPlaying, trackA, trackB, visualizerMixA, visualizerMixB]);
-
-  // BroadcastChannel sender — pushes visualizer state to any external visualizer windows
-  const broadcastChannelRef = useRef<BroadcastChannel | null>(null);
-  useEffect(() => {
-    broadcastChannelRef.current = new BroadcastChannel('mixfade-visualizer');
-    return () => {
-      broadcastChannelRef.current?.close();
-      broadcastChannelRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    let raf = 0;
-    const send = () => {
-      raf = requestAnimationFrame(send);
-      const ch = broadcastChannelRef.current;
-      if (!ch) return;
-
-      // Pick the dominant analyser node
-      const aPlaying = isTrackAPlaying && Boolean(trackA);
-      const bPlaying = isTrackBPlaying && Boolean(trackB);
-      const dominant =
-        aPlaying && bPlaying ? (visualizerMixA >= visualizerMixB ? 'A' : 'B') :
-        aPlaying ? 'A' :
-        bPlaying ? 'B' :
-        trackA ? 'A' : 'B';
-      const nodes = dominant === 'A' ? visualizerAudioNodesA : visualizerAudioNodesB;
-      const analyser = nodes?.analyserNode ?? null;
-
-      const fftSize = analyser?.frequencyBinCount ?? 1024;
-      const freqArr = new Uint8Array(fftSize);
-      const timeArr = new Uint8Array(fftSize);
-      if (analyser) {
-        analyser.getByteFrequencyData(freqArr);
-        analyser.getByteTimeDomainData(timeArr);
-      }
-
-      const bothAudible = visualizerMixA > 0.01 && visualizerMixB > 0.01;
-      const deckLabel = bothAudible ? 'Deck A · Deck B' : dominant ? `Deck ${dominant}` : '';
-      const nameA = trackA?.name?.replace(/\.[^.]+$/, '') ?? '';
-      const nameB = trackB?.name?.replace(/\.[^.]+$/, '') ?? '';
-      const trackLabel =
-        aPlaying && bPlaying ? [nameA, nameB].filter(Boolean).join('  ◆  ') :
-        aPlaying ? nameA :
-        bPlaying ? nameB :
-        nameA || nameB || '';
-
-      const [presetRawName] = getPresetEntryForSeed(visualizerSeed);
-      const idx = presetRawName.lastIndexOf(' - ');
-      const presetName = (idx !== -1 ? presetRawName.slice(idx + 3).trim() : presetRawName)
-        .replace(/\b\w/g, (c: string) => c.toUpperCase());
-
-      const msg: VisualizerBroadcastMessage = {
-        type: 'visualizer-state',
-        seed: visualizerSeed,
-        isPlaying: aPlaying || bPlaying,
-        trackLabel,
-        deckLabel,
-        presetName,
-        frequencyData: Array.from(freqArr),
-        timeDomainData: Array.from(timeArr),
-      };
-      ch.postMessage(msg);
-    };
-    raf = requestAnimationFrame(send);
-    return () => cancelAnimationFrame(raf);
-  }, [isTrackAPlaying, isTrackBPlaying, trackA, trackB, visualizerMixA, visualizerMixB, visualizerAudioNodesA, visualizerAudioNodesB, visualizerSeed]);
-
+  const {
+    isVisualizerWindowOpen,
+    visualizerSeed,
+    savedVisualizerSeeds,
+    visualizerAudioNodesA,
+    visualizerAudioNodesB,
+    visualizerMixA,
+    visualizerMixB,
+    rollVisualizerSeed,
+    saveVisualizerSeed,
+    loadVisualizerSeed,
+    deleteVisualizerSeed,
+    toggleVisualizerLoop,
+    handleExternalVisualizerReady,
+    handleExternalVisualizerWindowStateChange,
+    openExternalVisualizerWindow,
+  } = useVisualizerState({
+    activeActivity,
+    setActiveActivity,
+    lastNonVisualizerActivityRef,
+    waveformPlayerARef,
+    waveformPlayerBRef,
+    trackA,
+    trackB,
+    isTrackAPlaying,
+    isTrackBPlaying,
+    deckAVolume,
+    deckBVolume,
+    deckAMuted,
+    deckBMuted,
+    volumeA,
+    volumeB,
+    setDeckALooping,
+    setDeckBLooping,
+  });
   const handleActivityChange = useCallback((activityId: string) => {
     const nextActivity = activityId as ActivityId;
     setActiveActivity(nextActivity);
@@ -245,80 +158,6 @@ function App() {
     if (leftSamples) setTrackBLeftSamples(leftSamples);
     if (rightSamples) setTrackBRightSamples(rightSamples);
   }, []);
-
-  // Recent files are session-only - they clear when the app restarts
-  // This eliminates the confusion of files being in localStorage but not accessible
-  // since File objects can't be persisted across sessions
-
-  // Add file to recent files
-  const addToRecentFiles = useCallback((file: File, side: DeckSide) => {
-    const fileId = getRecentFileId(file);
-
-    setRecentFiles(prev => {
-      // Remove existing entry if it exists
-      const filtered = prev.filter(f => f.id !== fileId);
-
-      // Keep only the configured number of recent files
-      return [createRecentFileEntry(file, side), ...filtered].slice(0, settings.files.recentFilesLimit);
-    });
-  }, [settings.files.recentFilesLimit]);
-
-  const stageDroppedFiles = useCallback((files: File[]) => {
-    if (files.length === 0) {
-      return;
-    }
-
-    setRecentFiles(prev => {
-      const uniqueDroppedFiles = Array.from(new Map(files.map(file => [getRecentFileId(file), file])).values());
-      const droppedIds = new Set(uniqueDroppedFiles.map(getRecentFileId));
-      const filtered = prev.filter(file => !droppedIds.has(file.id));
-
-      const stagedFiles = uniqueDroppedFiles.map(file => {
-        const existingFile = prev.find(existing => existing.id === getRecentFileId(file));
-        return createRecentFileEntry(file, existingFile?.lastUsedSide ?? null);
-      });
-
-      return [...stagedFiles, ...filtered].slice(0, settings.files.recentFilesLimit);
-    });
-  }, [settings.files.recentFilesLimit]);
-
-  // Enhanced track setters that also update recent files
-  const setTrackAWithRecent = useCallback((file: File | null) => {
-    setTrackA(file);
-    if (file) {
-      addToRecentFiles(file, 'A');
-    }
-  }, [addToRecentFiles]);
-
-  const setTrackBWithRecent = useCallback((file: File | null) => {
-    setTrackB(file);
-    if (file) {
-      addToRecentFiles(file, 'B');
-    }
-  }, [addToRecentFiles]);
-
-  // Load file from recent files (session-only, so file is always available)
-  const loadFileFromRecent = useCallback((recentFile: RecentFile) => {
-    console.log('loadFileFromRecent called for:', recentFile.name);
-
-    // Since recent files are session-only, the File object should always be available
-    if (recentFile.file) {
-      if (!recentFile.lastUsedSide) {
-        console.warn('Recent file has no deck assignment yet:', recentFile.name);
-        return;
-      }
-
-      console.log('Loading in-memory File object for', recentFile.name);
-      if (recentFile.lastUsedSide === 'A') {
-        setTrackAWithRecent(recentFile.file);
-      } else {
-        setTrackBWithRecent(recentFile.file);
-      }
-    } else {
-      // This should never happen with session-only recent files
-      console.error('File object missing from recent file - this should not happen with session-only files');
-    }
-  }, [setTrackAWithRecent, setTrackBWithRecent]);
 
   // Handlers for syncing timeline scrubbing between decks
   const handleDeckATimeSeek = useCallback((time: number) => {
@@ -361,150 +200,6 @@ function App() {
       if (waveformPlayerBRef.current) waveformPlayerBRef.current.togglePlayPause();
     }
   }, [activeTrack, isLinkedPlayback]);
-
-
-
-
-  // DJ-style crossfade transition using settings (no useCallback to avoid stale closures)
-  const performCrossfade = (fromTrack: 'A' | 'B', toTrack: 'A' | 'B') => {
-    console.log(`🎚️ performCrossfade called: ${fromTrack} → ${toTrack}`);
-    console.log(`🔍 Before crossfade - isTransitioning: ${isTransitioning}, transitionRef: ${transitionRef.current ? 'active' : 'null'}`);
-
-    // Clear any existing transition first
-    if (transitionRef.current) {
-      clearTimeout(transitionRef.current);
-      transitionRef.current = null;
-      console.log('🧹 Cleared existing transition');
-    }
-
-    if (isTransitioning) {
-      console.log('⚠️ Crossfade blocked - already transitioning');
-      return; // Prevent multiple transitions
-    }
-
-    console.log('✅ Starting crossfade transition');
-    setIsTransitioning(true);
-    setCrossfadeDirection(fromTrack === 'A' ? 'A→B' : 'B→A');
-    // Access settings directly from current scope (no caching)
-    console.log(`🔍 CROSSFADE DEBUG: settings.audio.crossfadeTime = ${settings.audio.crossfadeTime}`);
-    const currentCrossfadeTime = settings.audio.crossfadeTime;
-    const currentUpdateRate = settings.analysis.updateRate;
-
-    const transitionDuration = currentCrossfadeTime * 1000; // Convert seconds to milliseconds
-    const steps = Math.max(30, Math.floor(currentUpdateRate)); // Use updateRate for smoothness
-    const stepDuration = transitionDuration / steps;
-
-    console.log(`🎚️ CROSSFADE: ${currentCrossfadeTime}s with ${settings.audio.crossfadeCurve} curve`);
-
-    let currentStep = 0;
-
-    const transition = () => {
-      currentStep++;
-      const linearProgress = currentStep / steps;
-
-      // Apply selected crossfade curve using latest settings
-      const curve = settings.audio.crossfadeCurve;
-      let fadeOut, fadeIn;
-
-      switch (curve) {
-        case 'linear':
-          fadeOut = 1 - linearProgress;
-          fadeIn = linearProgress;
-          break;
-        case 'logarithmic': {
-          const logProgress = Math.log(linearProgress * 9 + 1) / Math.log(10);
-          fadeOut = 1 - logProgress;
-          fadeIn = logProgress;
-          break;
-        }
-        case 'equal-power':
-        default: {
-          const angle = linearProgress * (Math.PI / 2);
-          fadeOut = Math.cos(angle);
-          fadeIn = Math.sin(angle);
-          break;
-        }
-      }
-
-      if (fromTrack === 'A' && toTrack === 'B') {
-        console.log(`🎚️ A→B Step ${currentStep}: fadeOut=${fadeOut.toFixed(3)}, fadeIn=${fadeIn.toFixed(3)} → volumeA=${fadeOut.toFixed(3)}, volumeB=${fadeIn.toFixed(3)}`);
-        setVolumeA(fadeOut);
-        setVolumeB(fadeIn);
-      } else if (fromTrack === 'B' && toTrack === 'A') {
-        console.log(`🎚️ B→A Step ${currentStep}: fadeOut=${fadeOut.toFixed(3)}, fadeIn=${fadeIn.toFixed(3)} → volumeA=${fadeIn.toFixed(3)}, volumeB=${fadeOut.toFixed(3)}`);
-        setVolumeA(fadeIn);
-        setVolumeB(fadeOut);
-      }
-
-      if (currentStep < steps) {
-        transitionRef.current = setTimeout(transition, stepDuration);
-      } else {
-        // Clear transition state completely
-        transitionRef.current = null;
-        setIsTransitioning(false);
-        setCrossfadeDirection(null);
-        console.log('✅ Crossfade completed, transition state cleared');
-        // Set final state with precise values
-        if (toTrack === 'A') {
-          setVolumeA(1);
-          setVolumeB(0);
-          setActiveTrack('A');
-        } else {
-          setVolumeA(0);
-          setVolumeB(1);
-          setActiveTrack('B');
-        }
-      }
-    };
-
-    // Start the first step after a small delay to allow state to settle
-    transitionRef.current = setTimeout(transition, stepDuration);
-  }; // End of performCrossfade function
-
-  // Handle track switching with crossfade logic (no useCallback to avoid stale closures)
-  const handleTrackSwitch = (track: 'A' | 'B' | 'both') => {
-    console.log(`🎯 handleTrackSwitch called with track: ${track}, current activeTrack: ${activeTrack}`);
-    console.log(`🔍 Current state - volumeA: ${volumeA}, volumeB: ${volumeB}, isTransitioning: ${isTransitioning}`);
-    console.log(`🔍 Track files - trackA: ${trackA ? 'loaded' : 'null'}, trackB: ${trackB ? 'loaded' : 'null'}`);
-
-    if (track === 'both') {
-      // For crossfade, don't clear existing transition - let performCrossfade handle prevention
-      // Crossfade from current active track to the other
-      if (activeTrack === 'A') {
-        console.log('🔄 CROSSFADE TRIGGER: A → B');
-        performCrossfade('A', 'B');
-      } else if (activeTrack === 'B') {
-        console.log('🔄 CROSSFADE TRIGGER: B → A');
-        performCrossfade('B', 'A');
-      } else {
-        console.log(`⚠️ Unexpected activeTrack state: ${activeTrack}, defaulting to A`);
-        // If already in transition or both, default to A
-        setVolumeA(1);
-        setVolumeB(0);
-        setActiveTrack('A');
-      }
-    } else {
-      console.log(`🔄 Direct track selection: ${track}`);
-      // Clear any existing transition for direct selection
-      if (transitionRef.current) {
-        clearTimeout(transitionRef.current);
-        transitionRef.current = null;
-        setIsTransitioning(false);
-        setCrossfadeDirection(null);
-      }
-
-      // Direct selection - immediate switch
-      setActiveTrack(track);
-      if (track === 'A') {
-        setVolumeA(1);
-        setVolumeB(0);
-      } else {
-        setVolumeA(0);
-        setVolumeB(1);
-      }
-    }
-  };
-
   // Set up keyboard shortcuts (after all functions are defined)
   useKeyboardShortcuts({
     'space': handlePlayPause,
@@ -526,51 +221,6 @@ function App() {
       }
     },
   });
-
-  // Handle active track switching when tracks are added/removed
-  useEffect(() => {
-    // If no tracks are loaded, reset to defaults
-    if (!trackA && !trackB) {
-      setActiveTrack('A');
-      setVolumeA(1);
-      setVolumeB(0);
-      return;
-    }
-
-    // If only Track A exists
-    if (trackA && !trackB) {
-      setActiveTrack('A');
-      setVolumeA(1);
-      setVolumeB(0);
-      return;
-    }
-
-    // If only Track B exists
-    if (!trackA && trackB) {
-      setActiveTrack('B');
-      setVolumeA(0);
-      setVolumeB(1);
-      return;
-    }
-
-    // If both tracks exist, ensure activeTrack is set to a valid value
-    if (trackA && trackB && (activeTrack === 'both' || !activeTrack)) {
-      console.log('🔧 Both tracks loaded, setting activeTrack to A as default');
-      setActiveTrack('A');
-      setVolumeA(1);
-      setVolumeB(0);
-    }
-  }, [trackA, trackB, activeTrack]);
-
-  // Cleanup transition on unmount
-  React.useEffect(() => {
-    return () => {
-      if (transitionRef.current) {
-        clearTimeout(transitionRef.current);
-      }
-    };
-  }, []);
-
   return (
     <div className="h-screen text-white flex">
       {/* Activity Bar */}
@@ -613,7 +263,7 @@ function App() {
         onSaveVisualizerSeed={saveVisualizerSeed}
         onLoadVisualizerSeed={loadVisualizerSeed}
         onDeleteVisualizerSeed={deleteVisualizerSeed}
-        onOpenVisualizerWindow={() => openExternalVisualizerWindowRef.current?.()}
+        onOpenVisualizerWindow={openExternalVisualizerWindow}
         isVisualizerWindowOpen={isVisualizerWindowOpen}
       />
 
@@ -650,7 +300,7 @@ function App() {
                       isTransitioning={isTransitioning}
                       volumeA={volumeA}
                       volumeB={volumeB}
-                      crossfadeDirection={crossfadeDirection}
+                      crossfadeDirection={currentCrossfadeDirection}
                     />
                   ) : (
                     <div className="w-full h-32 flex items-center justify-center">
@@ -831,3 +481,6 @@ function App() {
 }
 
 export default App;
+
+
+
