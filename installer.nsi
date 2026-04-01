@@ -1,13 +1,13 @@
 
 !define APP_NAME "MixFade"
-!define APP_VERSION "0.9.7"
+!define APP_VERSION "0.9.8"
 !define APP_PUBLISHER "MixFade Team"
 !define APP_URL "https://mixfade.app"
 !define APP_EXECUTABLE "mixfade.exe"
 
 ; Installer settings
 Name "${APP_NAME} ${APP_VERSION}"
-OutFile "C:\Users\roxas\OneDrive\Desktop\PROJECTS\MixFade\Prototype4\release\MixFade Setup 0.9.7.exe"
+OutFile "C:\Users\roxas\OneDrive\Desktop\PROJECTS\MixFade\Prototype4\release\MixFade Setup 0.9.8.exe"
 InstallDir "$PROGRAMFILES64\${APP_NAME}"
 InstallDirRegKey HKLM "Software\${APP_NAME}" "InstallDir"
 RequestExecutionLevel admin
@@ -33,7 +33,7 @@ RequestExecutionLevel admin
 !insertmacro MUI_LANGUAGE "English"
 
 ; Version info
-VIProductVersion "0.9.7.0"
+VIProductVersion "0.9.8.0"
 VIAddVersionKey "ProductName" "${APP_NAME}"
 VIAddVersionKey "ProductVersion" "${APP_VERSION}"
 VIAddVersionKey "CompanyName" "${APP_PUBLISHER}"
