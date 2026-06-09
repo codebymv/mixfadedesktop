@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   AudioLevels,
   FrequencyAnalysis,
+  FrequencyAverager,
   RMSAverager,
   SpectrogramAnalysis,
   SpectrogramAverager,
