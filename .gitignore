@@ -16,6 +16,7 @@ dist-ssr
 scripts/*
 !scripts/build-exe-installer.js
 !scripts/convert-to-ico.mjs
+!scripts/README.md
 !scripts/create-installer-mac.js
 !scripts/create-installer.js
 !scripts/create-window-icon.mjs
@@ -28,6 +29,7 @@ scripts/*
 !scripts/upload-installer.js
 !scripts/verify-build.js
 !scripts/verify-release-alignment.js
+!scripts/verify-release-scripts.js
 
 # Editor directories and files
 .vscode/*

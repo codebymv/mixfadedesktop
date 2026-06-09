@@ -36,6 +36,8 @@
     "verify:build": "node scripts/verify-build.js",
     "build:exe": "node scripts/build-exe-installer.js",
     "deploy:exe": "npm run build:exe && npm run release:verify && npm run upload:installer:exe",
+    "release:check": "npm run check && npm run build:icon && npm run release:scripts && npm run release:verify",
+    "release:scripts": "node scripts/verify-release-scripts.js",
     "release:verify": "node scripts/verify-release-alignment.js",
     "dist:win": "npm run build && electron-builder --win",
     "dist:mac": "npm run build && electron-builder --mac",

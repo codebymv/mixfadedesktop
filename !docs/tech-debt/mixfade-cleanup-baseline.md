@@ -281,11 +281,39 @@ Measured production build output:
 - Lazy Butterchurn support/runtime chunk: about `199 kB` minified.
 - Vite chunk-size warning is cleared for the app shell while keeping the lazy visualizer payload visible in build output.
 
+## Release Guardrail Checkpoint
+
+The supported local release readiness flow now has explicit script inventory and alignment checks.
+
+Changes:
+
+- Added `scripts/README.md` to document the canonical Windows web release path and the non-canonical status of ignored legacy scripts.
+- Added `npm run release:scripts` via `scripts/verify-release-scripts.js`.
+- Added `npm run release:check` as a no-upload readiness gate.
+- Strengthened `npm run release:verify` to check semver-like package version, expected installer path, minimum installer size, landing config presence, current download URL, current displayed size, and first version-history entry.
+- Kept ignored legacy installer scripts untouched as local reference artifacts.
+
+Verification after release guardrail cleanup:
+
+- `npm run release:scripts`: passes.
+- `npm run release:verify`: passes.
+- `npm run release:check`: passes.
+- `npm run check`: passes through `release:check` with lint clean, `13 suites / 212 tests`, and production build clean.
+
+Remaining release/distribution debt:
+
+- The Windows installer is still unsigned, so Windows SmartScreen/security prompts remain expected.
+- AWS SDK v2 is still used by secondary multi-platform/setup scripts; the canonical Windows web upload path uses AWS SDK v3.
+- Ignored legacy script retirement remains deferred by policy.
+- No CI workflow exists yet for `release:check`.
+
 ## Follow-Up Plan
 
-1. Decide whether to retire or modernize the remaining ignored legacy installer scripts.
-2. Optionally split `src/components/sidebar/analysis/useSmoothedAnalysis.ts` further by extracting per-signal smoothing hooks.
-3. Optionally extract `WaveformPlayer` imperative-handle helpers if the player needs another pass.
+1. Add CI for `npm run release:check` if/when this repo gets a remote workflow.
+2. Decide whether to retire or modernize the remaining ignored legacy installer scripts.
+3. Migrate or retire secondary AWS SDK v2 upload/setup scripts.
+4. Optionally split `src/components/sidebar/analysis/useSmoothedAnalysis.ts` further by extracting per-signal smoothing hooks.
+5. Optionally extract `WaveformPlayer` imperative-handle helpers if the player needs another pass.
 
 ## Guardrails
 
