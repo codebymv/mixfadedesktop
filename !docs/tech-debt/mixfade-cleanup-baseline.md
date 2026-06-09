@@ -45,7 +45,7 @@ Initial test failure classes:
 Passing:
 
 - `npm run lint`: `0 errors / 0 warnings`
-- `npm test -- --runInBand`: `12 suites / 209 tests`
+- `npm test -- --runInBand`: `13 suites / 212 tests`
 - `npm run build`
 - `npm run check`
 
@@ -56,10 +56,10 @@ Build warnings still accepted for follow-up:
 
 ## Current Hotspots
 
-- `src/components/sidebar/AnalysisPanel.tsx`: 768 LOC
 - `src/components/WaveformPlayer.tsx`: 557 LOC
+- `src/components/sidebar/analysis/useSmoothedAnalysis.ts`: 441 LOC
 
-These files remain the next structural refactor targets after the audio analysis split checkpoint.
+`AnalysisPanel.tsx` is no longer a hotspot after the sidebar analysis split. `useSmoothedAnalysis.ts` is still a dense behavior-preserving extraction and can be refined later, but it is below the immediate file-size risk threshold.
 
 ## Audio Analysis Split Checkpoint
 
@@ -98,10 +98,44 @@ Accepted remaining warnings/noise:
 - Vite reports the renderer main chunk above 500 kB.
 - Jest still emits known async `WaveformPlayer` console noise, but tests pass.
 
+## Sidebar Analysis Split Checkpoint
+
+`src/components/sidebar/AnalysisPanel.tsx` is now a coordinator for the analysis sidebar. The local collapsed-section persistence, collapsible card shell, shared prop/snapshot types, and smoothed analysis state machine were moved into focused modules under `src/components/sidebar/analysis/`.
+
+New module layout:
+
+- `src/components/sidebar/analysis/types.ts`: `AnalysisPanelProps` and `AnalysisSnapshot`.
+- `src/components/sidebar/analysis/useCollapsedSections.ts`: persisted collapsed-section state.
+- `src/components/sidebar/analysis/CollapsibleCard.tsx`: reusable collapsible card wrapper.
+- `src/components/sidebar/analysis/useSmoothedAnalysis.ts`: analysis smoothing, recent snapshots, and crossfade snapshot selection.
+- `src/components/sidebar/AnalysisPanel.tsx`: public panel coordinator and existing render composition.
+
+Latest LOC counts:
+
+- `src/components/sidebar/AnalysisPanel.tsx`: 156 LOC
+- `src/components/sidebar/analysis/types.ts`: 41 LOC
+- `src/components/sidebar/analysis/useCollapsedSections.ts`: 28 LOC
+- `src/components/sidebar/analysis/CollapsibleCard.tsx`: 44 LOC
+- `src/components/sidebar/analysis/useSmoothedAnalysis.ts`: 441 LOC
+- `src/components/WaveformPlayer.tsx`: 557 LOC
+
+Verification after split:
+
+- `npm run lint`: passes with `0 errors / 0 warnings`
+- `npm test -- --runInBand`: passes with `13 suites / 212 tests`
+- `npm run build`: passes
+- `npm run check`: passes
+
+Accepted remaining warnings/noise:
+
+- Browserslist/caniuse-lite is outdated.
+- Vite reports the renderer main chunk above 500 kB.
+- Jest still emits known async `WaveformPlayer` console noise, but tests pass.
+
 ## Follow-Up Plan
 
-1. Split `src/components/sidebar/AnalysisPanel.tsx` into panel-specific children while preserving the top-level props.
-2. Split `src/components/WaveformPlayer.tsx` into waveform canvas, transport, metadata bar, and imperative-handle helpers.
+1. Split `src/components/WaveformPlayer.tsx` into waveform canvas, transport, metadata bar, and imperative-handle helpers.
+2. Optionally refine `src/components/sidebar/analysis/useSmoothedAnalysis.ts` into smaller internal hooks after WaveformPlayer is addressed.
 3. Investigate renderer chunk size and add stable manual chunks only if it improves load behavior.
 4. Update Browserslist database in a separate tooling-only change.
 
