@@ -51,7 +51,6 @@ Passing:
 
 Build warnings still accepted for follow-up:
 
-- `caniuse-lite` / Browserslist database is outdated.
 - Renderer main chunk is larger than 500 kB after minification.
 
 ## Current Hotspots
@@ -94,7 +93,7 @@ Verification after split:
 
 Accepted remaining warnings/noise:
 
-- Browserslist/caniuse-lite is outdated.
+- Browserslist/caniuse-lite warning was cleared in the later Browserslist data update checkpoint.
 - Vite reports the renderer main chunk above 500 kB.
 - Jest output is quiet after WaveformPlayer async test cleanup.
 
@@ -128,7 +127,7 @@ Verification after split:
 
 Accepted remaining warnings/noise:
 
-- Browserslist/caniuse-lite is outdated.
+- Browserslist/caniuse-lite warning was cleared in the later Browserslist data update checkpoint.
 - Vite reports the renderer main chunk above 500 kB.
 - Jest output is quiet after WaveformPlayer async test cleanup.
 
@@ -159,7 +158,7 @@ Verification after split:
 
 Accepted remaining warnings/noise:
 
-- Browserslist/caniuse-lite is outdated.
+- Browserslist/caniuse-lite warning was cleared in the later Browserslist data update checkpoint.
 - Vite reports the renderer main chunk above 500 kB.
 - Jest output is quiet after WaveformPlayer async test cleanup.
 
@@ -189,7 +188,7 @@ Verification after split:
 
 Accepted remaining warnings/noise:
 
-- Browserslist/caniuse-lite is outdated.
+- Browserslist/caniuse-lite warning was cleared in the later Browserslist data update checkpoint.
 - Vite reports the renderer main chunk above 500 kB.
 - Jest output is quiet after WaveformPlayer async test cleanup.
 
@@ -217,16 +216,33 @@ Verification after split:
 
 Accepted remaining warnings/noise:
 
-- Browserslist/caniuse-lite is outdated.
+- Browserslist/caniuse-lite warning was cleared in the later Browserslist data update checkpoint.
 - Vite reports the renderer main chunk above 500 kB.
 - Jest output is quiet after WaveformPlayer async test cleanup.
+
+## Browserslist Data Update Checkpoint
+
+The Browserslist/caniuse-lite database warning was cleared by running `npx update-browserslist-db@latest`.
+
+Package metadata updated:
+
+- `caniuse-lite`: `1.0.30001726` -> `1.0.30001797`
+- Browser target changes: none reported by the updater.
+
+Verification after update:
+
+- `npm run build`: passes with no Browserslist/caniuse-lite warning
+- `npm run check`: passes
+
+Accepted remaining warnings/noise:
+
+- Vite reports the renderer main chunk above 500 kB.
 
 ## Follow-Up Plan
 
 1. Optionally split `src/components/sidebar/analysis/useSmoothedAnalysis.ts` further by extracting per-signal smoothing hooks.
 2. Optionally extract `WaveformPlayer` imperative-handle helpers if the player needs another pass.
 3. Investigate renderer chunk size and add stable manual chunks only if it improves load behavior.
-4. Update Browserslist database in a separate tooling-only change.
 
 ## Guardrails
 
