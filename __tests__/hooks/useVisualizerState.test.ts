@@ -173,13 +173,21 @@ describe('useVisualizerState Hook', () => {
     expect(openExternalWindow).toHaveBeenCalledTimes(1);
   });
 
-  it('returns to the last non-visualizer activity when the external window opens', () => {
+  it('returns to the last non-visualizer activity when the external window opens', async () => {
     const { result, setActiveActivity } = renderVisualizerHook({
       activeActivity: 'visualizer',
     });
 
+    await act(async () => {
+      await Promise.resolve();
+    });
+
     act(() => {
       result.current.handleExternalVisualizerWindowStateChange(true);
+    });
+
+    await act(async () => {
+      await Promise.resolve();
     });
 
     expect(result.current.isVisualizerWindowOpen).toBe(true);

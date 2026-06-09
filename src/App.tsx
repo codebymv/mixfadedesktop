@@ -1,13 +1,13 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { lazy, Suspense, useState, useCallback, useRef } from 'react';
 import { Activity } from 'lucide-react';
 import { FileUpload } from './components/FileUpload';
 import { ABSwitch } from './components/ABSwitch';
-import { WaveformPlayer, WaveformPlayerRef } from './components/WaveformPlayer';
+import { WaveformPlayer } from './components/WaveformPlayer';
+import type { WaveformPlayerRef } from './components/WaveformPlayer';
 import { AnalysisTabs } from './components/AnalysisTabs';
 import { AudioLevels, StereoAnalysis } from './utils/audioAnalysis';
 import { ActivityBar } from './components/ActivityBar';
 import { Sidebar } from './components/Sidebar';
-import { VisualizerMode } from './components/VisualizerMode';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useApplyColorTheme } from './hooks/useColorTheme';
 import { useCrossfade } from './hooks/useCrossfade';
@@ -17,6 +17,11 @@ import { useSettings } from './contexts/settings-context';
 import Header from './components/Header';
 
 type ActivityId = 'files' | 'analysis' | 'visualizer' | 'settings' | 'help';
+const VisualizerMode = lazy(() =>
+  import('./components/VisualizerMode').then(module => ({
+    default: module.VisualizerMode,
+  }))
+);
 
 function App() {
   // Load settings
@@ -139,6 +144,7 @@ function App() {
   const hasAnyAudio = trackA || trackB;
   const hasBothAudio = trackA && trackB;
   const isLinkPlaybackDisabled = !hasBothAudio;
+  const shouldRenderVisualizer = activeActivity === 'visualizer' || isVisualizerWindowOpen;
 
   // Stereo data handlers that also capture L/R samples for vectorscope
   const handleTrackAStereoData = useCallback((data: StereoAnalysis, leftSamples?: Float32Array, rightSamples?: Float32Array) => {
@@ -446,28 +452,32 @@ function App() {
           }`}
           aria-hidden={activeActivity !== 'visualizer' || isVisualizerWindowOpen}
         >
-          <VisualizerMode
-            trackAFile={trackA}
-            trackBFile={trackB}
-            audioNodesA={visualizerAudioNodesA}
-            audioNodesB={visualizerAudioNodesB}
-            isTrackAPlaying={isTrackAPlaying}
-            isTrackBPlaying={isTrackBPlaying}
-            volumeA={visualizerMixA}
-            volumeB={visualizerMixB}
-            isTransitioning={isTransitioning}
-            isActive={activeActivity === 'visualizer' && !isVisualizerWindowOpen}
-            seed={visualizerSeed}
-            onPlayPause={handlePlayPause}
-            isLoopingA={deckALooping}
-            isLoopingB={deckBLooping}
-            onToggleLoop={toggleVisualizerLoop}
-            onRollSeed={rollVisualizerSeed}
-            onSaveSeed={saveVisualizerSeed}
-            isSeedSaved={savedVisualizerSeeds.some(s => s.seed === visualizerSeed)}
-            onExternalWindowReady={handleExternalVisualizerReady}
-            onExternalWindowStateChange={handleExternalVisualizerWindowStateChange}
-          />
+          {shouldRenderVisualizer && (
+            <Suspense fallback={null}>
+              <VisualizerMode
+                trackAFile={trackA}
+                trackBFile={trackB}
+                audioNodesA={visualizerAudioNodesA}
+                audioNodesB={visualizerAudioNodesB}
+                isTrackAPlaying={isTrackAPlaying}
+                isTrackBPlaying={isTrackBPlaying}
+                volumeA={visualizerMixA}
+                volumeB={visualizerMixB}
+                isTransitioning={isTransitioning}
+                isActive={activeActivity === 'visualizer' && !isVisualizerWindowOpen}
+                seed={visualizerSeed}
+                onPlayPause={handlePlayPause}
+                isLoopingA={deckALooping}
+                isLoopingB={deckBLooping}
+                onToggleLoop={toggleVisualizerLoop}
+                onRollSeed={rollVisualizerSeed}
+                onSaveSeed={saveVisualizerSeed}
+                isSeedSaved={savedVisualizerSeeds.some(s => s.seed === visualizerSeed)}
+                onExternalWindowReady={handleExternalVisualizerReady}
+                onExternalWindowStateChange={handleExternalVisualizerWindowStateChange}
+              />
+            </Suspense>
+          )}
         </div>
       </div>
     </div>

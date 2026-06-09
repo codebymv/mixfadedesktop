@@ -1,6 +1,5 @@
 import butterchurnPresets from 'butterchurn-presets';
-
-export const DEFAULT_VIS_SEED = (Math.random() * 0xFFFFFFFF) >>> 0;
+export { DEFAULT_VIS_SEED } from './visualizerSeed';
 
 const PRESET_ENTRIES = Object.entries(butterchurnPresets.getPresets());
 

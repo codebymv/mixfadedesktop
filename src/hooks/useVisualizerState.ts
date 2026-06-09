@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DEFAULT_VIS_SEED, getPresetEntryForSeed } from '../components/visualizerPresets';
+import { DEFAULT_VIS_SEED, getFallbackPresetName } from '../components/visualizerSeed';
 import type { VisualizerBroadcastMessage } from '../components/ExternalVisualizerWindow';
 import type { SavedSeed } from '../components/sidebar/VisualizerPanel';
 import type { WaveformPlayerRef } from '../components/WaveformPlayer';
@@ -36,7 +36,7 @@ interface UseVisualizerStateResult {
   visualizerMixA: number;
   visualizerMixB: number;
   rollVisualizerSeed: () => void;
-  saveVisualizerSeed: () => void;
+  saveVisualizerSeed: (name?: string) => void;
   loadVisualizerSeed: (seed: number) => void;
   deleteVisualizerSeed: (id: string) => void;
   toggleVisualizerLoop: () => void;
@@ -68,6 +68,9 @@ export function useVisualizerState({
 }: UseVisualizerStateOptions): UseVisualizerStateResult {
   const [isVisualizerWindowOpen, setIsVisualizerWindowOpen] = useState(false);
   const [visualizerSeed, setVisualizerSeed] = useState(DEFAULT_VIS_SEED);
+  const [visualizerPresetName, setVisualizerPresetName] = useState(() =>
+    getFallbackPresetName(DEFAULT_VIS_SEED)
+  );
   const [savedVisualizerSeeds, setSavedVisualizerSeeds] = useState<SavedSeed[]>(() => {
     try {
       const stored = localStorage.getItem(SAVED_SEEDS_KEY);
@@ -92,13 +95,20 @@ export function useVisualizerState({
     setVisualizerSeed((Math.random() * 0xffffffff) >>> 0);
   }, []);
 
-  const saveVisualizerSeed = useCallback(() => {
+  const saveVisualizerSeed = useCallback((name?: string) => {
     setSavedVisualizerSeeds(prev => {
       if (prev.some(seedEntry => seedEntry.seed === visualizerSeed)) return prev;
-      const [name] = getPresetEntryForSeed(visualizerSeed);
-      return [...prev, { id: Date.now().toString(), seed: visualizerSeed, name, savedAt: Date.now() }];
+      return [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          seed: visualizerSeed,
+          name: name ?? visualizerPresetName,
+          savedAt: Date.now(),
+        },
+      ];
     });
-  }, [visualizerSeed]);
+  }, [visualizerPresetName, visualizerSeed]);
 
   const loadVisualizerSeed = useCallback((seed: number) => {
     setVisualizerSeed(seed);
@@ -154,6 +164,24 @@ export function useVisualizerState({
   }, [savedVisualizerSeeds]);
 
   useEffect(() => {
+    if (!isVisualizerWindowOpen) {
+      setVisualizerPresetName(getFallbackPresetName(visualizerSeed));
+      return;
+    }
+
+    let cancelled = false;
+    import('../components/visualizerPresets').then(({ getPresetEntryForSeed }) => {
+      if (cancelled) return;
+      const [presetRawName] = getPresetEntryForSeed(visualizerSeed);
+      setVisualizerPresetName(presetRawName);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isVisualizerWindowOpen, visualizerSeed]);
+
+  useEffect(() => {
     if (typeof BroadcastChannel === 'undefined') {
       return;
     }
@@ -202,9 +230,8 @@ export function useVisualizerState({
         bPlaying ? nameB :
         nameA || nameB || '';
 
-      const [presetRawName] = getPresetEntryForSeed(visualizerSeed);
-      const idx = presetRawName.lastIndexOf(' - ');
-      const presetName = (idx !== -1 ? presetRawName.slice(idx + 3).trim() : presetRawName)
+      const idx = visualizerPresetName.lastIndexOf(' - ');
+      const presetName = (idx !== -1 ? visualizerPresetName.slice(idx + 3).trim() : visualizerPresetName)
         .replace(/\b\w/g, (char: string) => char.toUpperCase());
 
       const message: VisualizerBroadcastMessage = {
@@ -236,6 +263,7 @@ export function useVisualizerState({
     visualizerMixB,
     visualizerAudioNodesA,
     visualizerAudioNodesB,
+    visualizerPresetName,
     visualizerSeed,
   ]);
 

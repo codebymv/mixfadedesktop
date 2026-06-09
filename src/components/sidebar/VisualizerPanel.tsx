@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react';
 import { Dices, ExternalLink, Save, Trash2, Sparkles } from 'lucide-react';
-import { getPresetEntryForSeed } from '../visualizerPresets';
+import { getFallbackPresetName } from '../visualizerSeed';
 
 const normalizePresetName = (name: string): string => {
   const idx = name.lastIndexOf(' - ');
@@ -18,7 +19,7 @@ interface VisualizerPanelProps {
   seed: number;
   onRollSeed: () => void;
   savedSeeds: SavedSeed[];
-  onSaveSeed: () => void;
+  onSaveSeed: (name?: string) => void;
   onLoadSeed: (seed: number) => void;
   onDeleteSeed: (id: string) => void;
   onOpenExternalWindow?: () => void;
@@ -35,7 +36,24 @@ export function VisualizerPanel({
   onOpenExternalWindow,
   isExternalWindowOpen = false,
 }: VisualizerPanelProps) {
-  const [currentPresetName] = getPresetEntryForSeed(seed);
+  const [currentPresetName, setCurrentPresetName] = useState(() =>
+    getFallbackPresetName(seed)
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    setCurrentPresetName(getFallbackPresetName(seed));
+    import('../visualizerPresets').then(({ getPresetEntryForSeed }) => {
+      if (cancelled) return;
+      const [presetName] = getPresetEntryForSeed(seed);
+      setCurrentPresetName(presetName);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [seed]);
+
   const currentPresetDisplay = normalizePresetName(currentPresetName);
   const alreadySaved = savedSeeds.some(s => s.seed === seed);
 
@@ -59,7 +77,7 @@ export function VisualizerPanel({
 
       {/* Save Button */}
       <button
-        onClick={onSaveSeed}
+        onClick={() => onSaveSeed(currentPresetName)}
         disabled={alreadySaved}
         className={`w-full flex items-center justify-center space-x-2 px-4 py-2.5 text-sm font-medium rounded-xl transition-all duration-200 ${
           alreadySaved

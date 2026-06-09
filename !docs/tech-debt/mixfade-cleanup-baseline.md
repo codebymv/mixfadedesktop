@@ -261,14 +261,31 @@ Accepted remaining release/distribution debt:
 
 - Some legacy installer/upload scripts are still present locally but intentionally ignored until they are either retired or modernized.
 - The Windows installer is still unsigned, so Windows SmartScreen/security prompts remain expected.
-- Vite reports the renderer main chunk above 500 kB.
+
+## Renderer Chunk Split Checkpoint
+
+The renderer build now lazy-loads the visualizer runtime and preset map instead of loading Butterchurn/presets with the app shell.
+
+Changes:
+
+- `src/main.tsx` lazy-loads `ExternalVisualizerWindow` only for the external visualizer entry.
+- `src/App.tsx` lazy-loads `VisualizerMode`.
+- `src/components/visualizerSeed.ts` provides lightweight seed defaults/fallback labels.
+- `useVisualizerState` and `VisualizerPanel` resolve real preset names with dynamic imports only when visualizer UI/window behavior needs them.
+- Vite `chunkSizeWarningLimit` is set to `700` because the only large chunk left is the deferred visualizer preset map.
+
+Measured production build output:
+
+- App shell JS: about `325 kB` minified, down from about `1,184 kB`.
+- Lazy visualizer preset map: about `646 kB` minified.
+- Lazy Butterchurn support/runtime chunk: about `199 kB` minified.
+- Vite chunk-size warning is cleared for the app shell while keeping the lazy visualizer payload visible in build output.
 
 ## Follow-Up Plan
 
-1. Investigate renderer chunk size and add stable manual chunks only if it improves load behavior.
-2. Decide whether to retire or modernize the remaining ignored legacy installer scripts.
-3. Optionally split `src/components/sidebar/analysis/useSmoothedAnalysis.ts` further by extracting per-signal smoothing hooks.
-4. Optionally extract `WaveformPlayer` imperative-handle helpers if the player needs another pass.
+1. Decide whether to retire or modernize the remaining ignored legacy installer scripts.
+2. Optionally split `src/components/sidebar/analysis/useSmoothedAnalysis.ts` further by extracting per-signal smoothing hooks.
+3. Optionally extract `WaveformPlayer` imperative-handle helpers if the player needs another pass.
 
 ## Guardrails
 

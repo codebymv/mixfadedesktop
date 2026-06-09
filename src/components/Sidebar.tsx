@@ -40,7 +40,7 @@ interface SidebarProps {
   visualizerSeed?: number;
   onRollVisualizerSeed?: () => void;
   savedVisualizerSeeds?: SavedSeed[];
-  onSaveVisualizerSeed?: () => void;
+  onSaveVisualizerSeed?: (name?: string) => void;
   onLoadVisualizerSeed?: (seed: number) => void;
   onDeleteVisualizerSeed?: (id: string) => void;
   onOpenVisualizerWindow?: () => void;
@@ -187,4 +187,3 @@ export function Sidebar({
     </div>
   );
 }
-

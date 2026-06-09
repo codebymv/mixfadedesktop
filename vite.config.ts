@@ -15,6 +15,10 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: 'dist-renderer',
     assetsDir: 'assets',
+    // The largest remaining chunk is the lazy visualizer preset map.
+    // Keeping it below this budget prevents app-shell regressions while
+    // avoiding noise for the intentionally deferred preset payload.
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html')
