@@ -177,6 +177,14 @@ const waitForWaveformReady = async () => {
   });
 };
 
+const flushAudioInitialization = async () => {
+  await act(async () => {
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+  });
+};
+
 describe('WaveformPlayer Component', () => {
   let mockOnPlayStateChange: jest.Mock;
   let mockOnAudioLevels: jest.Mock;
@@ -223,7 +231,7 @@ describe('WaveformPlayer Component', () => {
   });
 
   describe('Component Initialization and Setup', () => {
-    it('should render without errors', () => {
+    it('should render without errors', async () => {
       render(
         <WaveformPlayerWrapper>
           <WaveformPlayer
@@ -239,6 +247,7 @@ describe('WaveformPlayer Component', () => {
       );
 
       expect(screen.getByText('test-audio')).toBeInTheDocument();
+      await flushAudioInitialization();
     });
 
     it('should initialize audio context when audio is ready', async () => {
@@ -255,6 +264,8 @@ describe('WaveformPlayer Component', () => {
           />
         </WaveformPlayerWrapper>
       );
+
+      await flushAudioInitialization();
 
       // Simulate audio can play event
       await act(async () => {
@@ -281,6 +292,8 @@ describe('WaveformPlayer Component', () => {
           />
         </WaveformPlayerWrapper>
       );
+
+      await flushAudioInitialization();
 
       // Simulate audio loaded data event
       await act(async () => {
@@ -313,6 +326,8 @@ describe('WaveformPlayer Component', () => {
         </WaveformPlayerWrapper>
       );
 
+      await flushAudioInitialization();
+
       await waitFor(() => {
         expect(mockUseAudioContext.updateVolume).toHaveBeenCalledWith(
           expect.any(Number),
@@ -337,6 +352,8 @@ describe('WaveformPlayer Component', () => {
           />
         </WaveformPlayerWrapper>
       );
+
+      await flushAudioInitialization();
 
       await waitFor(() => {
         expect(mockUseAudioContext.updateVolume).toHaveBeenCalledWith(
@@ -363,6 +380,8 @@ describe('WaveformPlayer Component', () => {
         </WaveformPlayerWrapper>
       );
 
+      await flushAudioInitialization();
+
       // Change crossfade volume
       rerender(
         <WaveformPlayerWrapper>
@@ -378,6 +397,8 @@ describe('WaveformPlayer Component', () => {
           />
         </WaveformPlayerWrapper>
       );
+
+      await flushAudioInitialization();
 
       await waitFor(() => {
         expect(mockUseAudioContext.updateVolume).toHaveBeenCalledWith(
@@ -414,6 +435,7 @@ describe('WaveformPlayer Component', () => {
       };
 
       render(<TestComponent />);
+      await flushAudioInitialization();
 
       // Simulate audio can play
       await act(async () => {
@@ -458,6 +480,7 @@ describe('WaveformPlayer Component', () => {
       };
 
       render(<TestComponent />);
+      await flushAudioInitialization();
 
       const audioElement = document.querySelector('audio');
       expect(audioElement).not.toBeNull();
@@ -485,6 +508,8 @@ describe('WaveformPlayer Component', () => {
         </WaveformPlayerWrapper>
       );
 
+      await flushAudioInitialization();
+
       await waitForWaveformReady();
 
       const canvases = container.querySelectorAll('canvas');
@@ -505,6 +530,8 @@ describe('WaveformPlayer Component', () => {
           />
         </WaveformPlayerWrapper>
       );
+
+      await flushAudioInitialization();
 
       await waitForWaveformReady();
 
@@ -535,13 +562,13 @@ describe('WaveformPlayer Component', () => {
         </WaveformPlayerWrapper>
       );
 
-      // Simulate audio can play and has duration
+      await flushAudioInitialization();
+
+      // Simulate audio can play; decoded mock audio already provides duration.
       await act(async () => {
         const audioElement = document.querySelector('audio');
         if (audioElement) {
-          mockAudioElement.duration = 100;
           fireEvent.canPlay(audioElement);
-          fireEvent.loadedData(audioElement);
         }
       });
 
@@ -555,11 +582,15 @@ describe('WaveformPlayer Component', () => {
         value: () => ({ left: 0, width: 400 })
       });
 
-      fireEvent.click(canvas!, {
-        clientX: 200 // Simulate click at 50% of 400px width
+      await act(async () => {
+        fireEvent.click(canvas!, {
+          clientX: 200 // Simulate click at 50% of 400px width
+        });
       });
 
-      expect(document.querySelector('audio')?.currentTime).toBe(90); // 50% of 180s duration
+      await waitFor(() => {
+        expect(document.querySelector('audio')?.currentTime).toBe(90); // 50% of 180s duration
+      });
     });
   });
 
@@ -579,11 +610,15 @@ describe('WaveformPlayer Component', () => {
         </WaveformPlayerWrapper>
       );
 
+      await flushAudioInitialization();
+
       expect(await screen.findByText('44.1kHz')).toBeInTheDocument();
       expect(screen.getByText('MP3')).toBeInTheDocument();
     });
 
     it('should show loading state when metadata is loading', () => {
+      mockUseAudioMetadata.extractAudioMetadata.mockImplementationOnce(() => new Promise(() => undefined));
+
       render(
         <WaveformPlayerWrapper>
           <WaveformPlayer
@@ -627,6 +662,7 @@ describe('WaveformPlayer Component', () => {
       };
 
       render(<TestComponent />);
+      await flushAudioInitialization();
 
       const volumeButton = screen.getByText('Set Volume');
       fireEvent.click(volumeButton);
@@ -663,6 +699,7 @@ describe('WaveformPlayer Component', () => {
       };
 
       render(<TestComponent />);
+      await flushAudioInitialization();
 
       // Test mute
       const muteButton = screen.getByText('Mute');
@@ -687,7 +724,7 @@ describe('WaveformPlayer Component', () => {
   });
 
   describe('Cleanup and Error Handling', () => {
-    it('should cleanup resources when component unmounts', () => {
+    it('should cleanup resources when component unmounts', async () => {
       const { unmount } = render(
         <WaveformPlayerWrapper>
           <WaveformPlayer
@@ -702,6 +739,8 @@ describe('WaveformPlayer Component', () => {
         </WaveformPlayerWrapper>
       );
 
+      await flushAudioInitialization();
+
       unmount();
 
       expect(mockUseAudioContext.cleanup).toHaveBeenCalled();
@@ -710,6 +749,7 @@ describe('WaveformPlayer Component', () => {
     it('should handle audio play errors gracefully', async () => {
       // Mock play to reject
       mediaPlayMock.mockRejectedValueOnce(new Error('Play failed'));
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
       
       const TestComponent = () => {
         const ref = React.useRef<WaveformPlayerRef>(null);
@@ -734,6 +774,7 @@ describe('WaveformPlayer Component', () => {
       };
 
       render(<TestComponent />);
+      await flushAudioInitialization();
 
       // Simulate audio can play
       await act(async () => {
@@ -751,6 +792,8 @@ describe('WaveformPlayer Component', () => {
 
       // Should not throw error
       expect(mediaPlayMock).toHaveBeenCalled();
+      expect(consoleErrorSpy).toHaveBeenCalledWith('WaveformPlayer: Play error:', expect.any(Error));
+      consoleErrorSpy.mockRestore();
     });
   });
 });

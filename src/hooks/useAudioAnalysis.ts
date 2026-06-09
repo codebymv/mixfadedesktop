@@ -139,7 +139,6 @@ export const useAudioAnalysis = (
       // Use configurable update rate instead of requestAnimationFrame
       const intervalMs = 1000 / updateRate;
       analysisInterval.current = setInterval(updateAnalysisData, intervalMs);
-      console.log(`Started analysis with ${updateRate} FPS (${intervalMs}ms interval)`);
     } else {
       // Send zero values when not playing
       sendZeroValues();

@@ -96,7 +96,7 @@ Accepted remaining warnings/noise:
 
 - Browserslist/caniuse-lite is outdated.
 - Vite reports the renderer main chunk above 500 kB.
-- Jest still emits known async `WaveformPlayer` console noise, but tests pass.
+- Jest output is quiet after WaveformPlayer async test cleanup.
 
 ## Sidebar Analysis Split Checkpoint
 
@@ -130,7 +130,7 @@ Accepted remaining warnings/noise:
 
 - Browserslist/caniuse-lite is outdated.
 - Vite reports the renderer main chunk above 500 kB.
-- Jest still emits known async `WaveformPlayer` console noise, but tests pass.
+- Jest output is quiet after WaveformPlayer async test cleanup.
 
 ## Waveform Player Render Split Checkpoint
 
@@ -161,7 +161,7 @@ Accepted remaining warnings/noise:
 
 - Browserslist/caniuse-lite is outdated.
 - Vite reports the renderer main chunk above 500 kB.
-- Jest still emits known async `WaveformPlayer` console noise, but tests pass.
+- Jest output is quiet after WaveformPlayer async test cleanup.
 
 ## Waveform Player Audio Lifecycle Split Checkpoint
 
@@ -191,7 +191,7 @@ Accepted remaining warnings/noise:
 
 - Browserslist/caniuse-lite is outdated.
 - Vite reports the renderer main chunk above 500 kB.
-- Jest still emits known async `WaveformPlayer` console noise, but tests pass.
+- Jest output is quiet after WaveformPlayer async test cleanup.
 
 ## Analysis Snapshot Split Checkpoint
 
@@ -219,7 +219,7 @@ Accepted remaining warnings/noise:
 
 - Browserslist/caniuse-lite is outdated.
 - Vite reports the renderer main chunk above 500 kB.
-- Jest still emits known async `WaveformPlayer` console noise, but tests pass.
+- Jest output is quiet after WaveformPlayer async test cleanup.
 
 ## Follow-Up Plan
 
