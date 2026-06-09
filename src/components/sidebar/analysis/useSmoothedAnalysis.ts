@@ -11,6 +11,10 @@ import {
   calculateFrequencyMetrics,
   calculateSpectrogramMetrics
 } from '../../../utils/audioAnalysis';
+import {
+  selectAnalysisSnapshot
+} from './analysisSnapshots';
+import { useRecentAnalysisSnapshots } from './useRecentAnalysisSnapshots';
 import type { AnalysisPanelProps, AnalysisSnapshot } from './types';
 
 export function useSmoothedAnalysis({
@@ -28,8 +32,6 @@ export function useSmoothedAnalysis({
   volumeA = 1,
   volumeB = 0
 }: AnalysisPanelProps): AnalysisSnapshot {
-  const [recentAnalysis, setRecentAnalysis] = useState<AnalysisSnapshot[]>([]);
-
   const [trackASmoothed, setTrackASmoothed] = useState<AudioLevels | null>(null);
   const [trackBSmoothed, setTrackBSmoothed] = useState<AudioLevels | null>(null);
 
@@ -296,146 +298,53 @@ export function useSmoothedAnalysis({
     setPreCrossfadeSpectrogramB(null);
   }, [trackAFile, trackBFile]);
 
-  useEffect(() => {
-    const savedAnalysis = localStorage.getItem('mixfade-recent-analysis');
-    if (savedAnalysis) {
-      try {
-        setRecentAnalysis(JSON.parse(savedAnalysis));
-      } catch (error) {
-        console.warn('Failed to load recent analysis from localStorage:', error);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('mixfade-recent-analysis', JSON.stringify(recentAnalysis));
-  }, [recentAnalysis]);
-
-  useEffect(() => {
-    const shouldCapture = (
-      (trackAFile || trackBFile) &&
-      (!isTrackAPlaying || !isTrackBPlaying) &&
-      (trackASmoothed || trackBSmoothed || trackAFreqSmoothed || trackBFreqSmoothed || trackAStereoSmoothed || trackBStereoSmoothed || trackASpectrogramSmoothed || trackBSpectrogramSmoothed)
-    );
-
-    if (shouldCapture) {
-      const snapshotId = `${Date.now()}-${trackAFile?.name || 'none'}-${trackBFile?.name || 'none'}`;
-      const newSnapshot: AnalysisSnapshot = {
-        id: snapshotId,
-        timestamp: Date.now(),
-        trackAFile: trackAFile?.name,
-        trackBFile: trackBFile?.name,
-        trackADeckLevels: trackASmoothed || undefined,
-        trackBDeckLevels: trackBSmoothed || undefined,
-        trackAStereoData,
-        trackBStereoData,
-        trackAFrequencyData,
-        trackBFrequencyData,
-        trackAFrequencyAnalysis: trackAFreqSmoothed || undefined,
-        trackBFrequencyAnalysis: trackBFreqSmoothed || undefined,
-        trackAStereoAnalysis: trackAStereoSmoothed || undefined,
-        trackBStereoAnalysis: trackBStereoSmoothed || undefined,
-        trackASpectrogramAnalysis: trackASpectrogramSmoothed || undefined,
-        trackBSpectrogramAnalysis: trackBSpectrogramSmoothed || undefined
-      };
-
-      setRecentAnalysis(prev => {
-        const filtered = prev.filter(snap => snap.id !== snapshotId);
-        return [newSnapshot, ...filtered].slice(0, 10);
-      });
-    }
-  }, [isTrackAPlaying, isTrackBPlaying, trackAFile, trackBFile, trackASmoothed, trackBSmoothed, trackAFreqSmoothed, trackBFreqSmoothed, trackAStereoSmoothed, trackBStereoSmoothed, trackASpectrogramSmoothed, trackBSpectrogramSmoothed, trackAStereoData, trackBStereoData, trackAFrequencyData, trackBFrequencyData]);
-
-  const isTrackFadedOut = (volume: number) => volume < 0.1;
-
-  if (isTransitioning) {
-    return {
-      id: 'crossfade',
-      timestamp: Date.now(),
-      trackAFile: trackAFile?.name,
-      trackBFile: trackBFile?.name,
-      trackADeckLevels: preCrossfadeTrackA || trackASmoothed || undefined,
-      trackBDeckLevels: preCrossfadeTrackB || trackBSmoothed || undefined,
-      trackAStereoData,
-      trackBStereoData,
-      trackAFrequencyData,
-      trackBFrequencyData,
-      trackAFrequencyAnalysis: preCrossfadeFreqA || trackAFreqSmoothed || undefined,
-      trackBFrequencyAnalysis: preCrossfadeFreqB || trackBFreqSmoothed || undefined,
-      trackAStereoAnalysis: preCrossfadeStereoA || trackAStereoSmoothed || undefined,
-      trackBStereoAnalysis: preCrossfadeStereoB || trackBStereoSmoothed || undefined,
-      trackASpectrogramAnalysis: preCrossfadeSpectrogramA || trackASpectrogramSmoothed || undefined,
-      trackBSpectrogramAnalysis: preCrossfadeSpectrogramB || trackBSpectrogramSmoothed || undefined
-    };
-  }
-
-  if ((isTrackAPlaying || isTrackBPlaying) && (preCrossfadeTrackA || preCrossfadeTrackB)) {
-    return {
-      id: 'post-crossfade',
-      timestamp: Date.now(),
-      trackAFile: trackAFile?.name,
-      trackBFile: trackBFile?.name,
-      trackADeckLevels: isTrackFadedOut(volumeA) && preCrossfadeTrackA ? preCrossfadeTrackA : trackASmoothed || undefined,
-      trackBDeckLevels: isTrackFadedOut(volumeB) && preCrossfadeTrackB ? preCrossfadeTrackB : trackBSmoothed || undefined,
-      trackAStereoData,
-      trackBStereoData,
-      trackAFrequencyData,
-      trackBFrequencyData,
-      trackAFrequencyAnalysis: isTrackFadedOut(volumeA) && preCrossfadeFreqA ? preCrossfadeFreqA : trackAFreqSmoothed || undefined,
-      trackBFrequencyAnalysis: isTrackFadedOut(volumeB) && preCrossfadeFreqB ? preCrossfadeFreqB : trackBFreqSmoothed || undefined,
-      trackAStereoAnalysis: isTrackFadedOut(volumeA) && preCrossfadeStereoA ? preCrossfadeStereoA : trackAStereoSmoothed || undefined,
-      trackBStereoAnalysis: isTrackFadedOut(volumeB) && preCrossfadeStereoB ? preCrossfadeStereoB : trackBStereoSmoothed || undefined,
-      trackASpectrogramAnalysis: isTrackFadedOut(volumeA) && preCrossfadeSpectrogramA ? preCrossfadeSpectrogramA : trackASpectrogramSmoothed || undefined,
-      trackBSpectrogramAnalysis: isTrackFadedOut(volumeB) && preCrossfadeSpectrogramB ? preCrossfadeSpectrogramB : trackBSpectrogramSmoothed || undefined
-    };
-  }
-
-  if (isTrackAPlaying || isTrackBPlaying) {
-    return {
-      id: 'current',
-      timestamp: Date.now(),
-      trackAFile: trackAFile?.name,
-      trackBFile: trackBFile?.name,
-      trackADeckLevels: trackASmoothed || undefined,
-      trackBDeckLevels: trackBSmoothed || undefined,
-      trackAStereoData,
-      trackBStereoData,
-      trackAFrequencyData,
-      trackBFrequencyData,
-      trackAFrequencyAnalysis: trackAFreqSmoothed || undefined,
-      trackBFrequencyAnalysis: trackBFreqSmoothed || undefined,
-      trackAStereoAnalysis: trackAStereoSmoothed || undefined,
-      trackBStereoAnalysis: trackBStereoSmoothed || undefined,
-      trackASpectrogramAnalysis: trackASpectrogramSmoothed || undefined,
-      trackBSpectrogramAnalysis: trackBSpectrogramSmoothed || undefined
-    };
-  }
-
-  const currentFileCombo = `${trackAFile?.name || 'none'}-${trackBFile?.name || 'none'}`;
-  const recentSnapshot = recentAnalysis.find(snap =>
-    `${snap.trackAFile || 'none'}-${snap.trackBFile || 'none'}` === currentFileCombo
-  );
-
-  if (recentSnapshot) {
-    return recentSnapshot;
-  }
-
-  return {
-    id: 'current',
-    timestamp: Date.now(),
-    trackAFile: trackAFile?.name,
-    trackBFile: trackBFile?.name,
-    trackADeckLevels: trackASmoothed || undefined,
-    trackBDeckLevels: trackBSmoothed || undefined,
+  const recentAnalysis = useRecentAnalysisSnapshots({
+    trackAFile,
+    trackBFile,
     trackAStereoData,
     trackBStereoData,
     trackAFrequencyData,
     trackBFrequencyData,
-    trackAFrequencyAnalysis: trackAFreqSmoothed || undefined,
-    trackBFrequencyAnalysis: trackBFreqSmoothed || undefined,
-    trackAStereoAnalysis: trackAStereoSmoothed || undefined,
-    trackBStereoAnalysis: trackBStereoSmoothed || undefined,
-    trackASpectrogramAnalysis: trackASpectrogramSmoothed || undefined,
-    trackBSpectrogramAnalysis: trackBSpectrogramSmoothed || undefined
-  };
+    isTrackAPlaying,
+    isTrackBPlaying,
+    trackASmoothed,
+    trackBSmoothed,
+    trackAFreqSmoothed,
+    trackBFreqSmoothed,
+    trackAStereoSmoothed,
+    trackBStereoSmoothed,
+    trackASpectrogramSmoothed,
+    trackBSpectrogramSmoothed
+  });
+
+  return selectAnalysisSnapshot({
+    files: { trackAFile, trackBFile },
+    raw: { trackAStereoData, trackBStereoData, trackAFrequencyData, trackBFrequencyData },
+    smoothed: {
+      trackASmoothed,
+      trackBSmoothed,
+      trackAFreqSmoothed,
+      trackBFreqSmoothed,
+      trackAStereoSmoothed,
+      trackBStereoSmoothed,
+      trackASpectrogramSmoothed,
+      trackBSpectrogramSmoothed
+    },
+    crossfade: {
+      preCrossfadeTrackA,
+      preCrossfadeTrackB,
+      preCrossfadeFreqA,
+      preCrossfadeFreqB,
+      preCrossfadeStereoA,
+      preCrossfadeStereoB,
+      preCrossfadeSpectrogramA,
+      preCrossfadeSpectrogramB
+    },
+    recentAnalysis,
+    isTrackAPlaying,
+    isTrackBPlaying,
+    isTransitioning,
+    volumeA,
+    volumeB
+  });
 }

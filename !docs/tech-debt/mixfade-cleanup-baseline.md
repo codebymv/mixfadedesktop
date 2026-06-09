@@ -56,10 +56,10 @@ Build warnings still accepted for follow-up:
 
 ## Current Hotspots
 
-- `src/components/sidebar/analysis/useSmoothedAnalysis.ts`: 441 LOC
+- `src/components/sidebar/analysis/useSmoothedAnalysis.ts`: 350 LOC
 - `src/components/WaveformPlayer.tsx`: 309 LOC
 
-`AnalysisPanel.tsx` is no longer a hotspot after the sidebar analysis split. `WaveformPlayer.tsx` is now below the file-size risk threshold after the render and audio lifecycle splits. `useSmoothedAnalysis.ts` is the densest remaining local module.
+`AnalysisPanel.tsx` is no longer a hotspot after the sidebar analysis split. `WaveformPlayer.tsx` is now below the file-size risk threshold after the render and audio lifecycle splits. `useSmoothedAnalysis.ts` is still the densest remaining local module, but it is now mostly live smoothing effects.
 
 ## Audio Analysis Split Checkpoint
 
@@ -193,9 +193,37 @@ Accepted remaining warnings/noise:
 - Vite reports the renderer main chunk above 500 kB.
 - Jest still emits known async `WaveformPlayer` console noise, but tests pass.
 
+## Analysis Snapshot Split Checkpoint
+
+`src/components/sidebar/analysis/useSmoothedAnalysis.ts` now keeps live smoothing effects local and delegates snapshot building, crossfade/post-crossfade snapshot selection, and recent-analysis persistence to focused sidecar modules.
+
+New module layout:
+
+- `src/components/sidebar/analysis/analysisSnapshots.ts`: pure snapshot construction, faded-track selection, recent snapshot selection, and smoothed-data presence checks.
+- `src/components/sidebar/analysis/useRecentAnalysisSnapshots.ts`: localStorage persistence and paused-analysis snapshot capture.
+- `src/components/sidebar/analysis/useSmoothedAnalysis.ts`: live RMS/frequency/stereo/spectrogram smoothing and crossfade snapshot capture state.
+
+Latest LOC counts:
+
+- `src/components/sidebar/analysis/useSmoothedAnalysis.ts`: 350 LOC
+- `src/components/sidebar/analysis/analysisSnapshots.ts`: 151 LOC
+- `src/components/sidebar/analysis/useRecentAnalysisSnapshots.ts`: 93 LOC
+- `src/components/WaveformPlayer.tsx`: 309 LOC
+
+Verification after split:
+
+- `npm run lint`: passes with `0 errors / 0 warnings`
+- `npm run check`: passes
+
+Accepted remaining warnings/noise:
+
+- Browserslist/caniuse-lite is outdated.
+- Vite reports the renderer main chunk above 500 kB.
+- Jest still emits known async `WaveformPlayer` console noise, but tests pass.
+
 ## Follow-Up Plan
 
-1. Refine `src/components/sidebar/analysis/useSmoothedAnalysis.ts` into smaller internal hooks.
+1. Optionally split `src/components/sidebar/analysis/useSmoothedAnalysis.ts` further by extracting per-signal smoothing hooks.
 2. Optionally extract `WaveformPlayer` imperative-handle helpers if the player needs another pass.
 3. Investigate renderer chunk size and add stable manual chunks only if it improves load behavior.
 4. Update Browserslist database in a separate tooling-only change.
