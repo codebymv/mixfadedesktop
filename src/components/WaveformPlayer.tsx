@@ -1,15 +1,16 @@
-import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { useSettings } from '../contexts/settings-context';
 import { useAudioContext } from '../hooks/useAudioContext';
 import { useWaveform } from '../hooks/useWaveform';
 import { useAudioAnalysis } from '../hooks/useAudioAnalysis';
-import { useAudioMetadata, AudioMetadata } from '../hooks/useAudioMetadata';
+import { useAudioMetadata } from '../hooks/useAudioMetadata';
 import { useColorTheme } from '../hooks/useColorTheme';
 import { getDeckTheme } from '../theme/colorThemes';
 import { WaveformDisplay } from './waveform/WaveformDisplay';
 import { AudioMetadataDisplay } from './waveform/AudioMetadataDisplay';
 import { WaveformPlayerError } from './waveform/WaveformPlayerError';
 import { WaveformPlayerHeader } from './waveform/WaveformPlayerHeader';
+import { useWaveformPlayerAudio } from './waveform/useWaveformPlayerAudio';
 import type { WaveformPlayerProps, WaveformPlayerRef } from './waveform/waveformPlayerTypes';
 
 export type { WaveformPlayerRef } from './waveform/waveformPlayerTypes';
@@ -45,33 +46,38 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
   const waveform = useWaveform();
   const metadata = useAudioMetadata();
 
-  // Refs
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const fileUrl = useRef<string | null>(null);
-  const currentFile = useRef<File | null>(null);
-  
   // State
   const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
   const [internalVolume, setInternalVolume] = useState(1.0);
   const [internalIsMuted, setInternalIsMuted] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [canPlay, setCanPlay] = useState(false);
-  const [audioMetadata, setAudioMetadata] = useState<AudioMetadata | null>(null);
 
   const volume = deckVolume !== undefined ? deckVolume : internalVolume;
   const isMuted = externalIsMuted !== undefined ? externalIsMuted : internalIsMuted;
   const [internalIsLooping, setInternalIsLooping] = useState(false);
   const isLooping = externalIsLooping !== undefined ? externalIsLooping : internalIsLooping;
 
-  // Sync loop state to audio element
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.loop = isLooping;
-    }
-  }, [isLooping]);
+  const {
+    audioRef,
+    currentTime,
+    setCurrentTime,
+    duration,
+    isLoading,
+    error,
+    setError,
+    canPlay,
+    audioMetadata,
+    retry
+  } = useWaveformPlayerAudio({
+    file,
+    volume,
+    isMuted,
+    crossfadeVolume,
+    isLooping,
+    audioContext,
+    waveform,
+    metadata,
+    setIsPlaying
+  });
 
   // Color configuration
   const config = useMemo(() => {
@@ -110,168 +116,6 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     analysisCallbacks
   );
 
-  // Volume update effect
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    // Use both audio element volume AND gain node for complete control
-    if (crossfadeVolume === 0) {
-      // Complete silence - use audio element volume for immediate cutoff
-      audio.volume = 0;
-      audioContext.updateVolume(volume, isMuted, 0);
-    } else {
-      // Normal volume control
-      const baseVolume = isMuted ? 0 : volume;
-      const finalVolume = baseVolume * crossfadeVolume;
-      
-      // Set audio element volume
-      audio.volume = finalVolume;
-      
-      // Also set gain node if available
-      audioContext.updateVolume(volume, isMuted, crossfadeVolume);
-    }
-  }, [crossfadeVolume, volume, isMuted, audioContext]);
-
-  // Setup audio context wrapper
-  const setupAudioContext = useCallback(async () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    
-    await audioContext.setupAudioContext(audio, volume, isMuted, crossfadeVolume);
-  }, [audioContext, volume, isMuted, crossfadeVolume]);
-
-  // Initialize audio when file changes
-  useEffect(() => {
-    // Only initialize if file actually changed
-    if (currentFile.current === file) return;
-    
-    // Cleanup previous resources
-    audioContext.cleanup();
-    waveform.clearWaveformData();
-    
-    // Reset state
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setIsLoading(true);
-    setError(null);
-    setCanPlay(false);
-    setAudioMetadata(null);
-    
-    currentFile.current = file;
-    
-    const initializeAudio = async () => {
-      try {
-        // Clean up old URL
-        if (fileUrl.current) {
-          URL.revokeObjectURL(fileUrl.current);
-          fileUrl.current = null;
-        }
-
-        // Create new blob URL and keep reference
-        fileUrl.current = URL.createObjectURL(file);
-
-        // Set up audio element
-        if (audioRef.current) {
-          audioRef.current.src = fileUrl.current;
-          audioRef.current.volume = crossfadeVolume === 0 ? 0 : (isMuted ? 0 : volume);
-          audioRef.current.preload = 'auto';
-          audioRef.current.load();
-        }
-
-        // Decode audio for waveform and metadata
-        const arrayBuffer = await file.arrayBuffer();
-        
-        const tempContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-        const audioBuffer = await tempContext.decodeAudioData(arrayBuffer);
-
-        // Extract metadata
-        const extractedMetadata = await metadata.extractAudioMetadata(audioBuffer, file);
-        setAudioMetadata(extractedMetadata);
-
-        await tempContext.close();
-
-        // Generate stereo waveform data
-        await waveform.generateStereoWaveformData(audioBuffer);
-        setDuration(audioBuffer.duration);
-
-        // Initial state update
-        setTimeout(() => {
-          setIsLoading(false);
-        }, 100);
-
-      } catch (error) {
-        console.error('WaveformPlayer: Failed to initialize audio:', error);
-        setError(`Failed to load audio file: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setIsLoading(false);
-      }
-    };
-
-    initializeAudio();
-
-    // Cleanup on unmount or file change
-    return () => {
-      audioContext.cleanup();
-    };
-  }, [file, audioContext, waveform, metadata, crossfadeVolume, isMuted, volume]);
-
-  // Audio element event listeners
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleCanPlay = () => {
-      setCanPlay(true);
-      
-      // Set up audio context when audio is ready
-      setupAudioContext();
-    };
-
-    const handleTimeUpdate = () => {
-      setCurrentTime(audio.currentTime);
-    };
-
-    const handleEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-
-    const handleError = (e: Event) => {
-      console.error('WaveformPlayer: Audio error:', e);
-      setError('Failed to load audio file');
-      setIsLoading(false);
-    };
-
-    const handleLoadStart = () => {
-      setIsLoading(true);
-    };
-
-    const handleLoadedData = () => {
-      setDuration(audio.duration);
-    };
-
-    // Add event listeners
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-    audio.addEventListener('loadstart', handleLoadStart);
-    audio.addEventListener('loadeddata', handleLoadedData);
-
-    return () => {
-      // Remove event listeners
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-      audio.removeEventListener('loadstart', handleLoadStart);
-      audio.removeEventListener('loadeddata', handleLoadedData);
-    };
-  }, [file, setupAudioContext]);
-
-
-
   // Note: Waveform drawing is now handled by the WaveformDisplay component
 
   // Playback control functions
@@ -291,7 +135,7 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
       console.error('WaveformPlayer: Playback error:', error);
       setError('Playback failed');
     }
-  }, [isPlaying, canPlay]);
+  }, [audioRef, isPlaying, canPlay, setError]);
 
   const handleVolumeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newVolume = parseFloat(e.target.value);
@@ -330,7 +174,7 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
         onTimeSeek(clickTime);
       }
     }
-  }, [canPlay, duration, isLinkedPlayback, onTimeSeek]);
+  }, [audioRef, canPlay, duration, isLinkedPlayback, onTimeSeek, setCurrentTime]);
 
   // Expose playback controls to parent
   useImperativeHandle(ref, () => ({
@@ -385,7 +229,7 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     },
     getLoop: () => isLooping,
     getAudioNodes: () => audioContext.getNodes()
-  }), [togglePlayPause, currentTime, duration, isPlaying, volume, isMuted, isLooping, canPlay, onDeckVolumeChange, onMuteChange, onLoopChange, audioContext]);
+  }), [togglePlayPause, audioRef, currentTime, setCurrentTime, duration, isPlaying, volume, isMuted, isLooping, canPlay, onDeckVolumeChange, onMuteChange, onLoopChange, audioContext]);
   // Notify parent of play state changes
   useEffect(() => {
     if (onPlayStateChange) {
@@ -397,11 +241,7 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     return (
       <WaveformPlayerError
         error={error}
-        onRetry={() => {
-          setError(null);
-          setIsLoading(true);
-          currentFile.current = null; // Force re-initialization
-        }}
+        onRetry={retry}
       />
     );
   }
