@@ -238,11 +238,37 @@ Accepted remaining warnings/noise:
 
 - Vite reports the renderer main chunk above 500 kB.
 
+## Release Tooling Checkpoint
+
+The active Windows release path is now reproducible from the repository.
+
+Changes:
+
+- `scripts/` is no longer ignored wholesale. Package-referenced operational scripts are tracked, while non-referenced scratch scripts remain ignored.
+- `npm run build:icon` now has a tracked target script that verifies the source PNG and Windows ICO assets exist.
+- `npm run deploy:exe` now runs `npm run release:verify` between installer build and upload.
+- `npm run release:verify` checks the Electron package version, expected installer path, installer size, and neighboring landing download metadata when `../mixfade-landing/frontend/src/config/downloads.ts` exists.
+- The active Windows upload script uses AWS SDK v3 packages for S3 upload and metadata/page writes.
+
+Verification after release tooling cleanup:
+
+- `npm run build:icon`: passes
+- `node --check` for package-referenced operational scripts: passes
+- `npm run release:verify`: passes
+- `npm run check`: passes
+
+Accepted remaining release/distribution debt:
+
+- Some legacy installer/upload scripts are still present locally but intentionally ignored until they are either retired or modernized.
+- The Windows installer is still unsigned, so Windows SmartScreen/security prompts remain expected.
+- Vite reports the renderer main chunk above 500 kB.
+
 ## Follow-Up Plan
 
-1. Optionally split `src/components/sidebar/analysis/useSmoothedAnalysis.ts` further by extracting per-signal smoothing hooks.
-2. Optionally extract `WaveformPlayer` imperative-handle helpers if the player needs another pass.
-3. Investigate renderer chunk size and add stable manual chunks only if it improves load behavior.
+1. Investigate renderer chunk size and add stable manual chunks only if it improves load behavior.
+2. Decide whether to retire or modernize the remaining ignored legacy installer scripts.
+3. Optionally split `src/components/sidebar/analysis/useSmoothedAnalysis.ts` further by extracting per-signal smoothing hooks.
+4. Optionally extract `WaveformPlayer` imperative-handle helpers if the player needs another pass.
 
 ## Guardrails
 

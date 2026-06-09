@@ -13,7 +13,21 @@ dist-renderer
 release
 dist-ssr
 *.local
-scripts
+scripts/*
+!scripts/build-exe-installer.js
+!scripts/convert-to-ico.mjs
+!scripts/create-installer-mac.js
+!scripts/create-installer.js
+!scripts/create-window-icon.mjs
+!scripts/patch-electron-icon.js
+!scripts/rename-main.mjs
+!scripts/setup-s3.js
+!scripts/upload-all-platforms.js
+!scripts/upload-exe-installer.js
+!scripts/upload-installer-mac.js
+!scripts/upload-installer.js
+!scripts/verify-build.js
+!scripts/verify-release-alignment.js
 
 # Editor directories and files
 .vscode/*

@@ -35,7 +35,8 @@
     "upload:all-platforms": "node scripts/upload-all-platforms.js",
     "verify:build": "node scripts/verify-build.js",
     "build:exe": "node scripts/build-exe-installer.js",
-    "deploy:exe": "npm run build:exe && npm run upload:installer:exe",
+    "deploy:exe": "npm run build:exe && npm run release:verify && npm run upload:installer:exe",
+    "release:verify": "node scripts/verify-release-alignment.js",
     "dist:win": "npm run build && electron-builder --win",
     "dist:mac": "npm run build && electron-builder --mac",
     "dist:linux": "npm run build && electron-builder --linux",
@@ -80,6 +81,8 @@
     }
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1065.0",
+    "@aws-sdk/lib-storage": "^3.1065.0",
     "@eslint/js": "^9.17.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
