@@ -47,6 +47,7 @@ Passing:
 - `npm run lint`: `0 errors / 0 warnings`
 - `npm test -- --runInBand`: `12 suites / 209 tests`
 - `npm run build`
+- `npm run check`
 
 Build warnings still accepted for follow-up:
 
@@ -55,25 +56,54 @@ Build warnings still accepted for follow-up:
 
 ## Current Hotspots
 
-- `src/utils/audioAnalysis.ts`: 1039 LOC
 - `src/components/sidebar/AnalysisPanel.tsx`: 768 LOC
 - `src/components/WaveformPlayer.tsx`: 557 LOC
 
-These files remain the next structural refactor targets after this gate-repair checkpoint is reviewed.
+These files remain the next structural refactor targets after the audio analysis split checkpoint.
+
+## Audio Analysis Split Checkpoint
+
+`src/utils/audioAnalysis.ts` is now a compatibility facade. Existing imports from `src/utils/audioAnalysis.ts` remain valid, while the implementation lives under `src/utils/audio/`.
+
+New module layout:
+
+- `src/utils/audio/types.ts`: shared analysis interfaces.
+- `src/utils/audio/levels.ts`: RMS averaging and level/LUFS helpers.
+- `src/utils/audio/stereo.ts`: stereo averaging and phase/width/mid-side helpers.
+- `src/utils/audio/frequency.ts`: frequency averaging and frequency metrics.
+- `src/utils/audio/spectrogram.ts`: spectrogram averaging, buffer, and metrics.
+- `src/utils/audio/index.ts`: aggregate exports and `AudioUtils` compatibility object.
+- `src/utils/audioAnalysis.ts`: public compatibility facade.
+
+Latest LOC counts:
+
+- `src/utils/audioAnalysis.ts`: 19 LOC
+- `src/utils/audio/types.ts`: 55 LOC
+- `src/utils/audio/levels.ts`: 192 LOC
+- `src/utils/audio/stereo.ts`: 245 LOC
+- `src/utils/audio/frequency.ts`: 211 LOC
+- `src/utils/audio/spectrogram.ts`: 329 LOC
+- `src/utils/audio/index.ts`: 68 LOC
+
+Verification after split:
+
+- `npm run lint`: passes with `0 errors / 0 warnings`
+- `npm test -- --runInBand`: passes with `13 suites / 212 tests`
+- `npm run build`: passes
+- `npm run check`: passes
+
+Accepted remaining warnings/noise:
+
+- Browserslist/caniuse-lite is outdated.
+- Vite reports the renderer main chunk above 500 kB.
+- Jest still emits known async `WaveformPlayer` console noise, but tests pass.
 
 ## Follow-Up Plan
 
-1. Split `src/utils/audioAnalysis.ts` behind a compatibility facade:
-   - `src/utils/audio/levels.ts`
-   - `src/utils/audio/frequency.ts`
-   - `src/utils/audio/stereo.ts`
-   - `src/utils/audio/spectrogram.ts`
-   - `src/utils/audio/formatters.ts`
-   - `src/utils/audio/types.ts`
-2. Split `src/components/sidebar/AnalysisPanel.tsx` into panel-specific children while preserving the top-level props.
-3. Split `src/components/WaveformPlayer.tsx` into waveform canvas, transport, metadata bar, and imperative-handle helpers.
-4. Investigate renderer chunk size and add stable manual chunks only if it improves load behavior.
-5. Update Browserslist database in a separate tooling-only change.
+1. Split `src/components/sidebar/AnalysisPanel.tsx` into panel-specific children while preserving the top-level props.
+2. Split `src/components/WaveformPlayer.tsx` into waveform canvas, transport, metadata bar, and imperative-handle helpers.
+3. Investigate renderer chunk size and add stable manual chunks only if it improves load behavior.
+4. Update Browserslist database in a separate tooling-only change.
 
 ## Guardrails
 
