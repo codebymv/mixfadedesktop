@@ -56,8 +56,8 @@ Build warnings still accepted for follow-up:
 
 ## Current Hotspots
 
-- `src/components/WaveformPlayer.tsx`: 557 LOC
 - `src/components/sidebar/analysis/useSmoothedAnalysis.ts`: 441 LOC
+- `src/components/WaveformPlayer.tsx`: 469 LOC
 
 `AnalysisPanel.tsx` is no longer a hotspot after the sidebar analysis split. `useSmoothedAnalysis.ts` is still a dense behavior-preserving extraction and can be refined later, but it is below the immediate file-size risk threshold.
 
@@ -132,10 +132,41 @@ Accepted remaining warnings/noise:
 - Vite reports the renderer main chunk above 500 kB.
 - Jest still emits known async `WaveformPlayer` console noise, but tests pass.
 
+## Waveform Player Render Split Checkpoint
+
+`src/components/WaveformPlayer.tsx` now keeps the playback state, audio initialization, analysis hook wiring, and imperative ref handle local, while public types and render-only header/error surfaces live beside the waveform components.
+
+New module layout:
+
+- `src/components/waveform/waveformPlayerTypes.ts`: `WaveformPlayerProps`, `WaveformPlayerRef`, and shared render config shape.
+- `src/components/waveform/WaveformPlayerHeader.tsx`: play/link/loop/volume/time header rendering.
+- `src/components/waveform/WaveformPlayerError.tsx`: retryable error state rendering.
+- `src/components/WaveformPlayer.tsx`: public player component, audio lifecycle, playback controls, and existing ref API.
+
+Latest LOC counts:
+
+- `src/components/WaveformPlayer.tsx`: 469 LOC
+- `src/components/waveform/WaveformPlayerHeader.tsx`: 120 LOC
+- `src/components/waveform/WaveformPlayerError.tsx`: 20 LOC
+- `src/components/waveform/waveformPlayerTypes.ts`: 52 LOC
+- `src/components/sidebar/analysis/useSmoothedAnalysis.ts`: 441 LOC
+
+Verification after split:
+
+- `npm run lint`: passes with `0 errors / 0 warnings`
+- `npm test -- --runInBand __tests__/components/WaveformPlayer.test.tsx`: passes with `17 tests`
+- `npm run check`: passes
+
+Accepted remaining warnings/noise:
+
+- Browserslist/caniuse-lite is outdated.
+- Vite reports the renderer main chunk above 500 kB.
+- Jest still emits known async `WaveformPlayer` console noise, but tests pass.
+
 ## Follow-Up Plan
 
-1. Split `src/components/WaveformPlayer.tsx` into waveform canvas, transport, metadata bar, and imperative-handle helpers.
-2. Optionally refine `src/components/sidebar/analysis/useSmoothedAnalysis.ts` into smaller internal hooks after WaveformPlayer is addressed.
+1. Continue splitting `src/components/WaveformPlayer.tsx` by extracting audio initialization and imperative-handle helpers if the next batch stays focused on player internals.
+2. Optionally refine `src/components/sidebar/analysis/useSmoothedAnalysis.ts` into smaller internal hooks.
 3. Investigate renderer chunk size and add stable manual chunks only if it improves load behavior.
 4. Update Browserslist database in a separate tooling-only change.
 

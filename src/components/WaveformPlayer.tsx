@@ -1,57 +1,18 @@
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
-import { Link as LinkIcon, Repeat } from 'lucide-react';
-import { AudioLevels, StereoAnalysis } from '../utils/audioAnalysis';
 import { useSettings } from '../contexts/settings-context';
-import { AudioContextNodes, useAudioContext } from '../hooks/useAudioContext';
+import { useAudioContext } from '../hooks/useAudioContext';
 import { useWaveform } from '../hooks/useWaveform';
 import { useAudioAnalysis } from '../hooks/useAudioAnalysis';
 import { useAudioMetadata, AudioMetadata } from '../hooks/useAudioMetadata';
 import { useColorTheme } from '../hooks/useColorTheme';
 import { getDeckTheme } from '../theme/colorThemes';
 import { WaveformDisplay } from './waveform/WaveformDisplay';
-import { PlaybackControls } from './waveform/PlaybackControls';
 import { AudioMetadataDisplay } from './waveform/AudioMetadataDisplay';
-import { VolumeControls } from './waveform/VolumeControls';
+import { WaveformPlayerError } from './waveform/WaveformPlayerError';
+import { WaveformPlayerHeader } from './waveform/WaveformPlayerHeader';
+import type { WaveformPlayerProps, WaveformPlayerRef } from './waveform/waveformPlayerTypes';
 
-interface WaveformPlayerProps {
-  file: File;
-  color: 'green' | 'purple';
-  label: string;
-  isSidebarCollapsed?: boolean;
-  onPlayStateChange?: (isPlaying: boolean) => void;
-  onAudioLevels?: (levels: AudioLevels) => void;
-  onFrequencyData?: (data: Float32Array) => void;
-  onStereoData?: (data: StereoAnalysis, leftSamples?: Float32Array, rightSamples?: Float32Array) => void;
-  crossfadeVolume?: number; // Volume from crossfade control (0-1)
-  deckVolume?: number; // Hoisted persistent deck volume
-  onDeckVolumeChange?: (volume: number) => void;
-  isMuted?: boolean; // Hoisted persistent mute state
-  onMuteChange?: (isMuted: boolean) => void;
-  isLooping?: boolean; // Hoisted persistent loop state
-  onLoopChange?: (isLooping: boolean) => void;
-  isLinkedPlayback?: boolean; // True if A/B sync is on
-  isLinkPlaybackDisabled?: boolean;
-  onTimeSeek?: (time: number) => void; // Emits to parent when scrubbed
-  onToggleLinkedPlayback?: () => void; // Toggle Link Playback
-}
-
-export interface WaveformPlayerRef {
-  togglePlayPause: () => void;
-  play: () => void;
-  pause: () => void;
-  setCurrentTime: (time: number) => void;
-  getCurrentTime: () => number;
-  getDuration: () => number;
-  isPlaying: () => boolean;
-  setVolume: (vol: number) => void;
-  getVolume: () => number;
-  mute: () => void;
-  unmute: () => void;
-  isMuted: () => boolean;
-  setLoop: (looping: boolean) => void;
-  getLoop: () => boolean;
-  getAudioNodes: () => AudioContextNodes;
-}
+export type { WaveformPlayerRef } from './waveform/waveformPlayerTypes';
 
 export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>((
   {
@@ -349,6 +310,14 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     }
   }, [isMuted, onMuteChange]);
 
+  const toggleLoop = useCallback(() => {
+    if (onLoopChange) {
+      onLoopChange(!isLooping);
+    } else {
+      setInternalIsLooping(looping => !looping);
+    }
+  }, [isLooping, onLoopChange]);
+
   const handleWaveformClick = useCallback((clickTime: number) => {
     if (!canPlay || duration === 0) return;
     
@@ -426,21 +395,14 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
 
   if (error) {
     return (
-      <div className="glass-panel rounded-3xl p-6 border border-slate-600">
-        <div className="flex flex-col items-center justify-center h-64 gap-4">
-          <div className="text-red-400 text-sm text-center">{error}</div>
-          <button
-            onClick={() => {
-              setError(null);
-              setIsLoading(true);
-              currentFile.current = null; // Force re-initialization
-            }}
-            className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
+      <WaveformPlayerError
+        error={error}
+        onRetry={() => {
+          setError(null);
+          setIsLoading(true);
+          currentFile.current = null; // Force re-initialization
+        }}
+      />
     );
   }
 
@@ -454,78 +416,28 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
         preload="auto" 
       />
       
-      {/* Header - Shows Controls, Filename, Volume, and Time */}
-      <div className="flex flex-col gap-3 mb-4">
-        {/* Top Row: Play/Pause, Filename, Extension Badge */}
-        <div className="flex items-center gap-3">
-          <PlaybackControls
-            isPlaying={isPlaying}
-            canPlay={canPlay}
-            onTogglePlayPause={togglePlayPause}
-            config={config}
-            crossfadeVolume={crossfadeVolume}
-          />
-          <h3 className={`text-lg font-semibold ${config.textColor} ${crossfadeVolume === 0 ? 'opacity-50' : ''} truncate flex-grow`} title={file.name}>
-            {baseName}
-          </h3>
-          <div className={`text-[10px] font-bold font-mono px-2 py-1 rounded bg-slate-950/40 ${config.textColor} uppercase tracking-wider ml-auto`}>
-            {extension}
-          </div>
-        </div>
-
-        {/* Bottom Row: Link, Loop, Volume, Timestamp */}
-        <div className="flex items-center gap-2">
-          {/* Link button */}
-          {onToggleLinkedPlayback && (
-            <button
-              onClick={onToggleLinkedPlayback}
-              disabled={isLinkPlaybackDisabled}
-              className={`p-2 rounded-xl transition-all duration-200 border flex items-center justify-center flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${
-                isLinkedPlayback
-                  ? `${config.lightBgColor} ${config.textColor} ${config.borderColor} ${config.glowShadow}`
-                  : 'glass-panel text-audio-text-dim hover:text-white border-transparent hover:border-slate-600'
-              }`}
-              title={isLinkPlaybackDisabled ? 'Load tracks on both decks to link playback' : (isLinkedPlayback ? 'Unlink Decks' : 'Link Deck Playback')}
-              style={{ outline: 'none', outlineWidth: 0 }}
-            >
-              <LinkIcon size={16} className={isLinkedPlayback ? "" : "opacity-50"} />
-            </button>
-          )}
-
-          {/* Loop button */}
-          <button
-            onClick={() => {
-              if (onLoopChange) onLoopChange(!isLooping);
-              else setInternalIsLooping(l => !l);
-            }}
-            className={`p-2 rounded-xl transition-all duration-200 border flex items-center justify-center flex-shrink-0 ${
-              isLooping
-                ? `${config.lightBgColor} ${config.textColor} ${config.borderColor} ${config.glowShadow}`
-                : 'glass-panel text-audio-text-dim hover:text-white border-transparent hover:border-slate-600'
-            }`}
-            title={isLooping ? "Disable Loop" : "Enable Loop"}
-            style={{ outline: 'none', outlineWidth: 0 }}
-          >
-            <Repeat size={16} className={isLooping ? "" : "opacity-50"} />
-          </button>
-
-          <div className="flex-grow flex items-center min-w-[60px]">
-            <VolumeControls
-              volume={volume}
-              isMuted={isMuted}
-              config={{
-                waveColor: config.waveColor
-              }}
-              onVolumeChange={handleVolumeChange}
-              onToggleMute={toggleMute}
-            />
-          </div>
-          
-          <div className="text-xs text-audio-text-dim font-mono bg-slate-800/50 px-3 py-2 rounded-xl border border-slate-700 whitespace-nowrap ml-auto">
-            {metadata.formatTime(currentTime)} / {metadata.formatTime(duration)}
-          </div>
-        </div>
-      </div>
+      <WaveformPlayerHeader
+        fileName={file.name}
+        baseName={baseName}
+        extension={extension}
+        isPlaying={isPlaying}
+        canPlay={canPlay}
+        isLooping={isLooping}
+        isLinkedPlayback={isLinkedPlayback}
+        isLinkPlaybackDisabled={isLinkPlaybackDisabled}
+        crossfadeVolume={crossfadeVolume}
+        volume={volume}
+        isMuted={isMuted}
+        currentTime={currentTime}
+        duration={duration}
+        config={config}
+        metadata={metadata}
+        onTogglePlayPause={togglePlayPause}
+        onVolumeChange={handleVolumeChange}
+        onToggleMute={toggleMute}
+        onToggleLoop={toggleLoop}
+        onToggleLinkedPlayback={onToggleLinkedPlayback}
+      />
 
       {/* Stereo Waveforms */}
       <WaveformDisplay
