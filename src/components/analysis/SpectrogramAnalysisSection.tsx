@@ -15,17 +15,11 @@ import {
 interface SpectrogramAnalysisSectionProps {
   trackASpectrogramAnalysis?: SpectrogramAnalysis;
   trackBSpectrogramAnalysis?: SpectrogramAnalysis;
-  isTransitioning?: boolean;
-  isTrackAPlaying?: boolean;
-  isTrackBPlaying?: boolean;
 }
 
 export function SpectrogramAnalysisSection({
   trackASpectrogramAnalysis,
-  trackBSpectrogramAnalysis,
-  isTransitioning = false,
-  isTrackAPlaying = false,
-  isTrackBPlaying = false
+  trackBSpectrogramAnalysis
 }: SpectrogramAnalysisSectionProps) {
   if (!trackASpectrogramAnalysis && !trackBSpectrogramAnalysis) {
     return (

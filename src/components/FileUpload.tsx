@@ -90,11 +90,6 @@ export function FileUpload({ label, color, file, onFileSelect }: FileUploadProps
     purple: 'hover:bg-[var(--theme-deck-b-base)]/20 hover:border-[var(--theme-deck-b-base)]/50'
   };
 
-  const glowClasses = {
-    green: 'neon-glow-fusion',
-    purple: 'neon-glow-fusion'
-  };
-
   // Extract the letter (A or B) from the label
   const letter = label.split(' ')[1];
   const isAudioB = letter === 'B';

@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings } from '../contexts/settings-context';
 import { createThemeCssVariables, getColorTheme } from '../theme/colorThemes';
 
 export const useColorTheme = () => {

@@ -49,6 +49,7 @@ describe('FilesPanel', () => {
     );
 
     const dropZone = screen.getByTestId('files-panel-dropzone');
+    expect(screen.getByText(/load files or drag them here/i)).toBeInTheDocument();
 
     fireEvent.dragEnter(dropZone, {
       dataTransfer: {
@@ -57,7 +58,7 @@ describe('FilesPanel', () => {
       },
     });
 
-    expect(screen.getByText(/drop audio files here/i)).toBeInTheDocument();
+    expect(screen.getByText(/release to stage files/i)).toBeInTheDocument();
 
     fireEvent.drop(dropZone, {
       dataTransfer: {
@@ -70,6 +71,6 @@ describe('FilesPanel', () => {
     });
 
     expect(onAddDroppedFiles).toHaveBeenCalledWith([audioFile]);
-    expect(screen.queryByText(/drop audio files here/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/release to stage files/i)).not.toBeInTheDocument();
   });
 });

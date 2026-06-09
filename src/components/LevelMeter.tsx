@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { AudioLevels, AudioUtils, RMSAverager } from '../utils/audioAnalysis';
-import { InsightMetricCard } from './analysis/InsightMetricCard';
-import { formatMixPercent, formatSignedDb, getLevelRiskLabel, getMixToneClass } from '../utils/analysisFormatters';
+import { formatSignedDb, getLevelRiskLabel, getMixToneClass } from '../utils/analysisFormatters';
 
 interface LevelMeterProps {
   label: string;
@@ -30,8 +29,8 @@ export function LevelMeter({
   // Smoothed values for display
   const [leftRmsSmoothed, setLeftRmsSmoothed] = useState(0);
   const [rightRmsSmoothed, setRightRmsSmoothed] = useState(0);
-  const [combinedRmsSmoothed, setCombinedRmsSmoothed] = useState(0);
-  const [lufsSmoothed, setLufsSmoothed] = useState(-70);
+  const [, setCombinedRmsSmoothed] = useState(0);
+  const [, setLufsSmoothed] = useState(-70);
   const [leftLufsSmoothed, setLeftLufsSmoothed] = useState(-70);
   const [rightLufsSmoothed, setRightLufsSmoothed] = useState(-70);
 
@@ -192,7 +191,6 @@ export function LevelMeter({
     plus6: dbToMeterPosition(6)      // 100%
   };
 
-  const combinedPeakDb = Math.max(linearToDbExtended(leftPeak), linearToDbExtended(rightPeak));
   const combinedTruePeakDb = Math.max(linearToDbExtended(leftTruePeak), linearToDbExtended(rightTruePeak));
   const levelRisk = getLevelRiskLabel(combinedTruePeakDb);
   const mixToneClass = getMixToneClass(crossfadeVolume, isPlaying);

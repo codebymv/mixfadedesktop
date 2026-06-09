@@ -1,9 +1,9 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dices, Pause, Play, Repeat, Save } from 'lucide-react';
 import butterchurn, { ButterchurnVisualizer } from 'butterchurn';
-import butterchurnPresets from 'butterchurn-presets';
 import isButterchurnSupported from 'butterchurn/lib/isSupported.min';
 import type { AudioContextNodes } from '../hooks/useAudioContext';
+import { DEFAULT_VIS_SEED, getPresetEntryForSeed } from './visualizerPresets';
 
 interface VisualizerModeProps {
   trackAFile?: File | null;
@@ -34,15 +34,10 @@ const normalizePresetName = (name: string): string => {
   return raw.replace(/\b\w/g, c => c.toUpperCase());
 };
 
-export const DEFAULT_VIS_SEED = (Math.random() * 0xFFFFFFFF) >>> 0;
 const TARGET_FPS = 45;
 const MAX_RENDER_DPR = 1.25;
 const MAX_RENDER_PIXELS = 2560 * 1440;
 const ACTIVE_PRESET_BLEND_SECONDS = 0.7;
-const PRESET_ENTRIES = Object.entries(butterchurnPresets.getPresets());
-export const getPresetEntryForSeed = (seed: number) => PRESET_ENTRIES.length
-  ? (PRESET_ENTRIES[(seed >>> 0) % PRESET_ENTRIES.length] as [string, unknown])
-  : ['No Preset', null] as [string, unknown];
 const getRenderScale = (width: number, height: number) => {
   const cappedDpr = Math.min(window.devicePixelRatio || 1, MAX_RENDER_DPR);
   const desiredPixels = Math.max(1, width * cappedDpr) * Math.max(1, height * cappedDpr);
@@ -264,7 +259,9 @@ export const VisualizerMode = memo(function VisualizerMode({
 
   const disconnectCurrentNode = useCallback(() => {
     if (!visualizerRef.current || !connectedNodeRef.current) return;
-    try { visualizerRef.current.disconnectAudio(connectedNodeRef.current); } catch {}
+    try { visualizerRef.current.disconnectAudio(connectedNodeRef.current); } catch {
+      // Ignore disconnect failures; the next connection replaces the node reference.
+    }
     connectedNodeRef.current = null;
   }, []);
   const resize = useCallback(() => {

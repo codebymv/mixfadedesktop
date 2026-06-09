@@ -13,16 +13,10 @@ import { useApplyColorTheme } from './hooks/useColorTheme';
 import { useCrossfade } from './hooks/useCrossfade';
 import { useRecentFiles } from './hooks/useRecentFiles';
 import { useVisualizerState } from './hooks/useVisualizerState';
-import { useSettings } from './contexts/SettingsContext';
+import { useSettings } from './contexts/settings-context';
 import Header from './components/Header';
 
 type ActivityId = 'files' | 'analysis' | 'visualizer' | 'settings' | 'help';
-
-const ACCEPTED_AUDIO_EXTENSIONS = ['.wav', '.mp3', '.flac', '.aiff', '.aif', '.m4a', '.aac', '.ogg'];
-const isAcceptedAudioDrop = (file: File) => {
-  const name = file.name.toLowerCase();
-  return file.type.startsWith('audio/') || ACCEPTED_AUDIO_EXTENSIONS.some(ext => name.endsWith(ext));
-};
 
 function App() {
   // Load settings

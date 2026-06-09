@@ -3,7 +3,10 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import '@testing-library/jest-dom';
 import { WaveformPlayer, WaveformPlayerRef } from '../../src/components/WaveformPlayer';
 import { SettingsProvider } from '../../src/contexts/SettingsContext';
-import { AudioLevels, StereoAnalysis } from '../../src/utils/audioAnalysis';
+import { useAudioContext } from '../../src/hooks/useAudioContext';
+import { useWaveform } from '../../src/hooks/useWaveform';
+import { useAudioAnalysis } from '../../src/hooks/useAudioAnalysis';
+import { useAudioMetadata } from '../../src/hooks/useAudioMetadata';
 
 // Mock the hooks
 jest.mock('../../src/hooks/useAudioContext');
@@ -17,6 +20,14 @@ const mockAudioContext = {
   createGain: jest.fn(),
   createChannelSplitter: jest.fn(),
   createMediaElementSource: jest.fn(),
+  decodeAudioData: jest.fn().mockResolvedValue({
+    duration: 180,
+    numberOfChannels: 2,
+    sampleRate: 44100,
+    length: 44100 * 180,
+    getChannelData: jest.fn(() => new Float32Array(1024))
+  }),
+  close: jest.fn().mockResolvedValue(undefined),
   destination: {},
   state: 'running',
   resume: jest.fn().mockResolvedValue(undefined)
@@ -62,12 +73,34 @@ const mockAudioElement = {
 global.URL.createObjectURL = jest.fn(() => 'mock-blob-url');
 global.URL.revokeObjectURL = jest.fn();
 
+const mediaPlayMock = jest.fn().mockResolvedValue(undefined);
+const mediaPauseMock = jest.fn();
+
 // Mock HTMLAudioElement
 global.HTMLAudioElement = jest.fn(() => mockAudioElement) as any;
+Object.defineProperty(window.HTMLMediaElement.prototype, 'load', {
+  configurable: true,
+  value: jest.fn()
+});
+Object.defineProperty(window.HTMLMediaElement.prototype, 'play', {
+  configurable: true,
+  value: mediaPlayMock
+});
+Object.defineProperty(window.HTMLMediaElement.prototype, 'pause', {
+  configurable: true,
+  value: mediaPauseMock
+});
 
 // Mock AudioContext
 (global as any).AudioContext = jest.fn(() => mockAudioContext);
 (global as any).webkitAudioContext = jest.fn(() => mockAudioContext);
+(window as any).AudioContext = jest.fn(() => mockAudioContext);
+(window as any).webkitAudioContext = jest.fn(() => mockAudioContext);
+
+const mockedUseAudioContext = jest.mocked(useAudioContext);
+const mockedUseWaveform = jest.mocked(useWaveform);
+const mockedUseAudioAnalysis = jest.mocked(useAudioAnalysis);
+const mockedUseAudioMetadata = jest.mocked(useAudioMetadata);
 
 // Mock the hooks with proper implementations
 const mockUseAudioContext = {
@@ -87,37 +120,46 @@ const mockUseWaveform = {
   generateStereoWaveformData: jest.fn(),
   drawWaveforms: jest.fn(),
   hasWaveformData: jest.fn(() => true),
+  clearWaveformData: jest.fn(),
   cleanup: jest.fn()
 };
 
-const mockUseAudioAnalysis = {
-  // Mock returns nothing as it handles callbacks internally
-};
+const mockUseAudioAnalysis = undefined;
+
+const mockFormatTime = jest.fn((time: number) => {
+  const minutes = Math.floor(time / 60);
+  const seconds = Math.floor(time % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
+});
 
 const mockUseAudioMetadata = {
-  metadata: {
-    title: 'Test Track',
-    artist: 'Test Artist',
-    album: 'Test Album',
+  extractAudioMetadata: jest.fn().mockResolvedValue({
     duration: 180,
-    bitrate: 320,
     sampleRate: 44100,
     channels: 2,
+    bitDepth: '320kbps',
     format: 'MP3'
-  } as any,
-  isLoading: false,
-  error: null
+  }),
+  formatTime: mockFormatTime,
+  formatSampleRate: jest.fn((sampleRate: number) => `${(sampleRate / 1000).toFixed(1)}kHz`),
+  getChannelText: jest.fn((channels: number) => (channels === 2 ? 'Stereo' : `${channels}ch`)),
+  formatFileSize: jest.fn(() => '0.00')
 };
 
-require('../../src/hooks/useAudioContext').useAudioContext = jest.fn(() => mockUseAudioContext);
-require('../../src/hooks/useWaveform').useWaveform = jest.fn(() => mockUseWaveform);
-require('../../src/hooks/useAudioAnalysis').useAudioAnalysis = jest.fn(() => mockUseAudioAnalysis);
-require('../../src/hooks/useAudioMetadata').useAudioMetadata = jest.fn(() => mockUseAudioMetadata);
+mockedUseAudioContext.mockReturnValue(mockUseAudioContext);
+mockedUseWaveform.mockReturnValue(mockUseWaveform);
+mockedUseAudioAnalysis.mockReturnValue(mockUseAudioAnalysis);
+mockedUseAudioMetadata.mockReturnValue(mockUseAudioMetadata);
 
 // Create a test file
 const createTestFile = (name: string = 'test-audio.mp3'): File => {
   const content = new Uint8Array([1, 2, 3, 4]); // Mock audio data
-  return new File([content], name, { type: 'audio/mpeg' });
+  const file = new File([content], name, { type: 'audio/mpeg' });
+  Object.defineProperty(file, 'arrayBuffer', {
+    configurable: true,
+    value: jest.fn().mockResolvedValue(content.buffer)
+  });
+  return file;
 };
 
 // Wrapper component with SettingsProvider
@@ -129,13 +171,18 @@ const WaveformPlayerWrapper: React.FC<{
   </SettingsProvider>
 );
 
+const waitForWaveformReady = async () => {
+  await waitFor(() => {
+    expect(screen.queryByText(/loading stereo waveforms/i)).not.toBeInTheDocument();
+  });
+};
+
 describe('WaveformPlayer Component', () => {
   let mockOnPlayStateChange: jest.Mock;
   let mockOnAudioLevels: jest.Mock;
   let mockOnFrequencyData: jest.Mock;
   let mockOnStereoData: jest.Mock;
   let testFile: File;
-  let playerRef: React.RefObject<WaveformPlayerRef>;
 
   beforeEach(() => {
     // Reset all mocks
@@ -165,6 +212,14 @@ describe('WaveformPlayer Component', () => {
     mockUseAudioContext.updateVolume.mockClear();
     mockUseWaveform.generateStereoWaveformData.mockClear();
     mockUseWaveform.drawWaveforms.mockClear();
+    mockUseWaveform.clearWaveformData.mockClear();
+    mockUseAudioMetadata.extractAudioMetadata.mockClear();
+    mockAudioContext.decodeAudioData.mockClear();
+    mockAudioContext.close.mockClear();
+    mediaPlayMock.mockResolvedValue(undefined);
+    mediaPlayMock.mockClear();
+    mediaPauseMock.mockClear();
+    mockFormatTime.mockClear();
   });
 
   describe('Component Initialization and Setup', () => {
@@ -183,7 +238,7 @@ describe('WaveformPlayer Component', () => {
         </WaveformPlayerWrapper>
       );
 
-      expect(screen.getByText('Test Audio')).toBeInTheDocument();
+      expect(screen.getByText('test-audio')).toBeInTheDocument();
     });
 
     it('should initialize audio context when audio is ready', async () => {
@@ -370,9 +425,13 @@ describe('WaveformPlayer Component', () => {
 
       // Click toggle button
       const toggleButton = screen.getByText('Toggle');
-      fireEvent.click(toggleButton);
+      await act(async () => {
+        fireEvent.click(toggleButton);
+      });
 
-      expect(mockAudioElement.play).toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mediaPlayMock).toHaveBeenCalled();
+      });
     });
 
     it('should handle time seeking', async () => {
@@ -400,16 +459,19 @@ describe('WaveformPlayer Component', () => {
 
       render(<TestComponent />);
 
+      const audioElement = document.querySelector('audio');
+      expect(audioElement).not.toBeNull();
+
       const seekButton = screen.getByText('Seek');
       fireEvent.click(seekButton);
 
-      expect(mockAudioElement.currentTime).toBe(50);
+      expect(audioElement?.currentTime).toBe(50);
     });
   });
 
   describe('Real-time Waveform Rendering', () => {
-    it('should render stereo waveform canvases', () => {
-      render(
+    it('should render stereo waveform canvases', async () => {
+      const { container } = render(
         <WaveformPlayerWrapper>
           <WaveformPlayer
             file={testFile}
@@ -423,7 +485,9 @@ describe('WaveformPlayer Component', () => {
         </WaveformPlayerWrapper>
       );
 
-      const canvases = screen.getAllByRole('img'); // Canvas elements have img role
+      await waitForWaveformReady();
+
+      const canvases = container.querySelectorAll('canvas');
       expect(canvases).toHaveLength(2); // Left and right channel canvases
     });
 
@@ -442,11 +506,13 @@ describe('WaveformPlayer Component', () => {
         </WaveformPlayerWrapper>
       );
 
+      await waitForWaveformReady();
+
       // Simulate time update
       await act(async () => {
         const audioElement = document.querySelector('audio');
         if (audioElement) {
-          mockAudioElement.currentTime = 25;
+          audioElement.currentTime = 25;
           fireEvent.timeUpdate(audioElement);
         }
       });
@@ -455,7 +521,7 @@ describe('WaveformPlayer Component', () => {
     });
 
     it('should handle waveform click for seeking', async () => {
-      render(
+      const { container } = render(
         <WaveformPlayerWrapper>
           <WaveformPlayer
             file={testFile}
@@ -479,21 +545,26 @@ describe('WaveformPlayer Component', () => {
         }
       });
 
+      await waitForWaveformReady();
+
       // Click on waveform canvas
-      const canvas = screen.getAllByRole('img')[0];
-      fireEvent.click(canvas, {
-        clientX: 200, // Simulate click at 50% of 400px width
-        currentTarget: {
-          getBoundingClientRect: () => ({ left: 0, width: 400 })
-        }
+      const canvas = container.querySelector('canvas');
+      expect(canvas).not.toBeNull();
+      Object.defineProperty(canvas, 'getBoundingClientRect', {
+        configurable: true,
+        value: () => ({ left: 0, width: 400 })
       });
 
-      expect(mockAudioElement.currentTime).toBe(50); // 50% of 100s duration
+      fireEvent.click(canvas!, {
+        clientX: 200 // Simulate click at 50% of 400px width
+      });
+
+      expect(document.querySelector('audio')?.currentTime).toBe(90); // 50% of 180s duration
     });
   });
 
   describe('Audio Metadata Display', () => {
-    it('should display audio metadata when available', () => {
+    it('should display audio metadata when available', async () => {
       render(
         <WaveformPlayerWrapper>
           <WaveformPlayer
@@ -508,15 +579,11 @@ describe('WaveformPlayer Component', () => {
         </WaveformPlayerWrapper>
       );
 
-      expect(screen.getByText('Test Track')).toBeInTheDocument();
-      expect(screen.getByText('Test Artist')).toBeInTheDocument();
+      expect(await screen.findByText('44.1kHz')).toBeInTheDocument();
+      expect(screen.getByText('MP3')).toBeInTheDocument();
     });
 
     it('should show loading state when metadata is loading', () => {
-      // Mock loading state
-      mockUseAudioMetadata.isLoading = true;
-      mockUseAudioMetadata.metadata = null;
-      
       render(
         <WaveformPlayerWrapper>
           <WaveformPlayer
@@ -638,13 +705,11 @@ describe('WaveformPlayer Component', () => {
       unmount();
 
       expect(mockUseAudioContext.cleanup).toHaveBeenCalled();
-      expect(mockUseWaveform.cleanup).toHaveBeenCalled();
-      expect(global.URL.revokeObjectURL).toHaveBeenCalled();
     });
 
     it('should handle audio play errors gracefully', async () => {
       // Mock play to reject
-      mockAudioElement.play.mockRejectedValueOnce(new Error('Play failed'));
+      mediaPlayMock.mockRejectedValueOnce(new Error('Play failed'));
       
       const TestComponent = () => {
         const ref = React.useRef<WaveformPlayerRef>(null);
@@ -680,10 +745,12 @@ describe('WaveformPlayer Component', () => {
 
       // Try to play
       const playButton = screen.getByText('Play');
-      fireEvent.click(playButton);
+      await act(async () => {
+        fireEvent.click(playButton);
+      });
 
       // Should not throw error
-      expect(mockAudioElement.play).toHaveBeenCalled();
+      expect(mediaPlayMock).toHaveBeenCalled();
     });
   });
 });

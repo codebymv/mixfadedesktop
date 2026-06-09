@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle, useMemo } from 'react';
 import { Link as LinkIcon, Repeat } from 'lucide-react';
 import { AudioLevels, StereoAnalysis } from '../utils/audioAnalysis';
-import { useSettings } from '../contexts/SettingsContext';
+import { useSettings } from '../contexts/settings-context';
 import { AudioContextNodes, useAudioContext } from '../hooks/useAudioContext';
 import { useWaveform } from '../hooks/useWaveform';
 import { useAudioAnalysis } from '../hooks/useAudioAnalysis';
@@ -57,7 +57,6 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
   {
     file,
     color,
-    isSidebarCollapsed,
     onPlayStateChange,
     onAudioLevels,
     onFrequencyData,
@@ -417,7 +416,7 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
     },
     getLoop: () => isLooping,
     getAudioNodes: () => audioContext.getNodes()
-  }), [togglePlayPause, currentTime, duration, isPlaying, volume, isMuted, isLooping, canPlay, onDeckVolumeChange, onMuteChange, onLoopChange]);
+  }), [togglePlayPause, currentTime, duration, isPlaying, volume, isMuted, isLooping, canPlay, onDeckVolumeChange, onMuteChange, onLoopChange, audioContext]);
   // Notify parent of play state changes
   useEffect(() => {
     if (onPlayStateChange) {
@@ -551,7 +550,6 @@ export const WaveformPlayer = forwardRef<WaveformPlayerRef, WaveformPlayerProps>
         <AudioMetadataDisplay
           file={file}
           audioMetadata={audioMetadata}
-          isSidebarCollapsed={isSidebarCollapsed}
         />
       </div>
     </div>

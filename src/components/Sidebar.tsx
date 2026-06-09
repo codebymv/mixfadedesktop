@@ -1,5 +1,5 @@
 import { ChevronLeft } from 'lucide-react';
-import { activities } from './ActivityBar';
+import { activities } from './activityBarConfig';
 import { AudioLevels, StereoAnalysis } from '../utils/audioAnalysis';
 
 // Import sidebar panels
@@ -187,5 +187,4 @@ export function Sidebar({
     </div>
   );
 }
-
 

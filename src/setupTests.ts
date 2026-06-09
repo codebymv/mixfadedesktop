@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom';
 
+Object.defineProperty(globalThis, '__APP_VERSION__', {
+  value: '0.9.8',
+  configurable: true,
+});
+
 // Mock Web Audio API
 Object.defineProperty(window, 'AudioContext', {
   writable: true,

@@ -596,6 +596,7 @@ describe('🖥️ Electron Integration - Main Process', () => {
       const logFile = path.join(app.getPath('userData'), 'main.log');
       
       expect(path.join).toHaveBeenCalledWith('/mock/userData', 'main.log');
+      expect(logFile).toBe('/mock/userData/main.log');
     });
 
     it('should handle URL loading errors', async () => {

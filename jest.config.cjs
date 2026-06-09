@@ -14,6 +14,22 @@ module.exports = {
     '<rootDir>/__tests__/**/*.(test|spec).(ts|tsx)',
     '<rootDir>/src/**/*.(test|spec).(ts|tsx)'
   ],
+  testPathIgnorePatterns: [
+    '<rootDir>/node_modules/',
+    '<rootDir>/release/',
+    '<rootDir>/dist/',
+    '<rootDir>/dist-renderer/',
+  ],
+  modulePathIgnorePatterns: [
+    '<rootDir>/release/',
+    '<rootDir>/dist/',
+    '<rootDir>/dist-renderer/',
+  ],
+  watchPathIgnorePatterns: [
+    '<rootDir>/release/',
+    '<rootDir>/dist/',
+    '<rootDir>/dist-renderer/',
+  ],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
     '!src/**/*.d.ts',

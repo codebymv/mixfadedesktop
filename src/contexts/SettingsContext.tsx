@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { useState, useEffect, useCallback, ReactNode } from 'react';
+import { SettingsContext } from './settings-context';
 import { AppSettings, DEFAULT_SETTINGS } from '../types/settings';
 
 const mergeSettings = (savedSettings?: Partial<AppSettings> | null): AppSettings => ({
@@ -28,22 +29,6 @@ const mergeSettings = (savedSettings?: Partial<AppSettings> | null): AppSettings
     ...(savedSettings?.shortcuts ?? {}),
   },
 });
-
-interface SettingsContextType {
-  settings: AppSettings;
-  updateSetting: <T extends keyof AppSettings>(
-    category: T,
-    key: keyof AppSettings[T],
-    value: AppSettings[T][keyof AppSettings[T]]
-  ) => void;
-  resetToDefaults: () => void;
-  getSetting: <T extends keyof AppSettings>(
-    category: T,
-    key: keyof AppSettings[T]
-  ) => AppSettings[T][keyof AppSettings[T]];
-}
-
-const SettingsContext = createContext<SettingsContextType | undefined>(undefined);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(() => {
@@ -101,12 +86,4 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       {children}
     </SettingsContext.Provider>
   );
-}
-
-export function useSettings() {
-  const context = useContext(SettingsContext);
-  if (context === undefined) {
-    throw new Error('useSettings must be used within a SettingsProvider');
-  }
-  return context;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { BarChart3, ChevronDown, Volume2, Keyboard, Undo2, BookOpen, Palette, Tag } from 'lucide-react';
-import { useSettings } from '../../contexts/SettingsContext';
+import { useSettings } from '../../contexts/settings-context';
 import type { AppSettings } from '../../types/settings';
 import { COLOR_THEME_OPTIONS, withAlpha } from '../../theme/colorThemes';
 

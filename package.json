@@ -20,6 +20,8 @@
     "electron:dev-with-icon": "npm run patch-electron-icon && npm run electron:dev",
     "dist": "npm run build && electron-builder",
     "lint": "eslint .",
+    "check": "npm run lint && npm test -- --runInBand && npm run build",
+    "check:quick": "npm run lint && npm test -- --runInBand",
     "preview": "vite preview",
     "test": "jest",
     "test:watch": "jest --watch",

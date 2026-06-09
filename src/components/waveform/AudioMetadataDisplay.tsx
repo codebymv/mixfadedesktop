@@ -4,13 +4,11 @@ import { AudioMetadata, useAudioMetadata } from '../../hooks/useAudioMetadata';
 interface AudioMetadataDisplayProps {
   file: File;
   audioMetadata: AudioMetadata | null;
-  isSidebarCollapsed?: boolean;
 }
 
 export const AudioMetadataDisplay: React.FC<AudioMetadataDisplayProps> = ({
   file,
-  audioMetadata,
-  isSidebarCollapsed
+  audioMetadata
 }) => {
   const { formatSampleRate, getChannelText, formatFileSize } = useAudioMetadata();
 

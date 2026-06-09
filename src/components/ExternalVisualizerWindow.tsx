@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import butterchurn, { ButterchurnVisualizer } from 'butterchurn';
-import butterchurnPresets from 'butterchurn-presets';
 import isButterchurnSupported from 'butterchurn/lib/isSupported.min';
-import { getPresetEntryForSeed, DEFAULT_VIS_SEED } from './VisualizerMode';
+import { getPresetEntryForSeed, DEFAULT_VIS_SEED } from './visualizerPresets';
 
 export interface VisualizerBroadcastMessage {
   type: 'visualizer-state';
@@ -191,4 +190,3 @@ export function ExternalVisualizerWindow() {
     </div>
   );
 }
-

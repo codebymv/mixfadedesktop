@@ -7,17 +7,11 @@ import { formatDb, linearToDb, getDelta } from '../../utils/analysisFormatters';
 interface LevelsAnalysisSectionProps {
   trackADeckLevels?: AudioLevels;
   trackBDeckLevels?: AudioLevels;
-  isTransitioning?: boolean;
-  isTrackAPlaying?: boolean;
-  isTrackBPlaying?: boolean;
 }
 
 export function LevelsAnalysisSection({
   trackADeckLevels,
-  trackBDeckLevels,
-  isTransitioning = false,
-  isTrackAPlaying = false,
-  isTrackBPlaying = false
+  trackBDeckLevels
 }: LevelsAnalysisSectionProps) {
   return (
     <div className="px-3 py-2">

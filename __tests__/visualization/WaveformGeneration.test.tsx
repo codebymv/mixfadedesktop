@@ -627,7 +627,7 @@ describe('🎨 Real-time Visualization - Waveform Generation', () => {
         { crossfadeVolume: 1, description: 'active track' }
       ];
       
-      testStates.forEach(({ crossfadeVolume, description }) => {
+      testStates.forEach(({ crossfadeVolume }) => {
         jest.clearAllMocks();
         
         act(() => {

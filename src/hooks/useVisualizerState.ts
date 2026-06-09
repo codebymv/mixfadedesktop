@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { DEFAULT_VIS_SEED, getPresetEntryForSeed } from '../components/VisualizerMode';
+import { DEFAULT_VIS_SEED, getPresetEntryForSeed } from '../components/visualizerPresets';
 import type { VisualizerBroadcastMessage } from '../components/ExternalVisualizerWindow';
 import type { SavedSeed } from '../components/sidebar/VisualizerPanel';
 import type { WaveformPlayerRef } from '../components/WaveformPlayer';

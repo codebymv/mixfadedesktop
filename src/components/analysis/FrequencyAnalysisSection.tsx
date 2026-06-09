@@ -6,17 +6,11 @@ import { formatDb, formatFrequency, getDelta, getFrequencyDelta } from '../../ut
 interface FrequencyAnalysisSectionProps {
   trackAFrequencyAnalysis?: FrequencyAnalysis;
   trackBFrequencyAnalysis?: FrequencyAnalysis;
-  isTransitioning?: boolean;
-  isTrackAPlaying?: boolean;
-  isTrackBPlaying?: boolean;
 }
 
 export function FrequencyAnalysisSection({
   trackAFrequencyAnalysis,
-  trackBFrequencyAnalysis,
-  isTransitioning = false,
-  isTrackAPlaying = false,
-  isTrackBPlaying = false
+  trackBFrequencyAnalysis
 }: FrequencyAnalysisSectionProps) {
   if (!trackAFrequencyAnalysis && !trackBFrequencyAnalysis) {
     return (

@@ -137,7 +137,7 @@ describe('Analysis Formatters', () => {
       expect(formatMonoCompatibilityLabel('GOOD')).toBe('GOOD');
       expect(formatMonoCompatibilityLabel('WARNING')).toBe('WATCH');
       expect(formatMonoCompatibilityLabel('POOR')).toBe('RISK');
-      // @ts-ignore
+      // @ts-expect-error verifies fallback for invalid compatibility labels.
       expect(formatMonoCompatibilityLabel('unknown')).toBe('—');
     });
 
@@ -212,7 +212,7 @@ describe('Analysis Formatters', () => {
       expect(getMonoCompatibilityToneClass('GOOD')).toBe('text-yellow-400');
       expect(getMonoCompatibilityToneClass('WARNING')).toBe('text-orange-400');
       expect(getMonoCompatibilityToneClass('POOR')).toBe('text-red-400');
-      // @ts-ignore
+      // @ts-expect-error verifies fallback for invalid compatibility labels.
       expect(getMonoCompatibilityToneClass('unknown')).toBe('text-slate-300');
     });
 
@@ -250,7 +250,7 @@ describe('Analysis Formatters', () => {
       expect(getSpectralBalanceToneClass('BALANCED')).toBe('text-green-400');
       expect(getSpectralBalanceToneClass('BRIGHT')).toBe('text-purple-400');
       expect(getSpectralBalanceToneClass('SILENT')).toBe('text-slate-400');
-      // @ts-ignore
+      // @ts-expect-error verifies fallback for invalid spectral balance labels.
       expect(getSpectralBalanceToneClass('unknown')).toBe('text-slate-300');
     });
 
@@ -259,7 +259,7 @@ describe('Analysis Formatters', () => {
       expect(getPeakBandToneClass('mid')).toBe('text-orange-400');
       expect(getPeakBandToneClass('upperMid')).toBe('text-green-400');
       expect(getPeakBandToneClass('high')).toBe('text-purple-400');
-      // @ts-ignore
+      // @ts-expect-error verifies fallback for invalid peak band labels.
       expect(getPeakBandToneClass('unknown')).toBe('text-slate-300');
     });
 

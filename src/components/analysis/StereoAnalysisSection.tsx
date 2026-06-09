@@ -7,17 +7,11 @@ import { formatCorrelation, formatStereoWidth, formatDb, linearToDb, getDelta, g
 interface StereoAnalysisSectionProps {
   trackAStereoAnalysis?: StereoAnalysis;
   trackBStereoAnalysis?: StereoAnalysis;
-  isTransitioning?: boolean;
-  isTrackAPlaying?: boolean;
-  isTrackBPlaying?: boolean;
 }
 
 export function StereoAnalysisSection({
   trackAStereoAnalysis,
-  trackBStereoAnalysis,
-  isTransitioning = false,
-  isTrackAPlaying = false,
-  isTrackBPlaying = false
+  trackBStereoAnalysis
 }: StereoAnalysisSectionProps) {
   if (!trackAStereoAnalysis && !trackBStereoAnalysis) {
     return (

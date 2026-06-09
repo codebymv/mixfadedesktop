@@ -710,9 +710,6 @@ export function AnalysisPanel({
               <LevelsAnalysisSection
                 trackADeckLevels={ca.trackADeckLevels}
                 trackBDeckLevels={ca.trackBDeckLevels}
-                isTransitioning={isTransitioning}
-                isTrackAPlaying={isTrackAPlaying}
-                isTrackBPlaying={isTrackBPlaying}
               />
             </CollapsibleCard>
 
@@ -727,9 +724,6 @@ export function AnalysisPanel({
               <FrequencyAnalysisSection
                 trackAFrequencyAnalysis={ca.trackAFrequencyAnalysis}
                 trackBFrequencyAnalysis={ca.trackBFrequencyAnalysis}
-                isTransitioning={isTransitioning}
-                isTrackAPlaying={isTrackAPlaying}
-                isTrackBPlaying={isTrackBPlaying}
               />
             </CollapsibleCard>
 
@@ -744,9 +738,6 @@ export function AnalysisPanel({
               <StereoAnalysisSection
                 trackAStereoAnalysis={ca.trackAStereoAnalysis}
                 trackBStereoAnalysis={ca.trackBStereoAnalysis}
-                isTransitioning={isTransitioning}
-                isTrackAPlaying={isTrackAPlaying}
-                isTrackBPlaying={isTrackBPlaying}
               />
             </CollapsibleCard>
 
@@ -761,9 +752,6 @@ export function AnalysisPanel({
               <SpectrogramAnalysisSection
                 trackASpectrogramAnalysis={ca.trackASpectrogramAnalysis}
                 trackBSpectrogramAnalysis={ca.trackBSpectrogramAnalysis}
-                isTransitioning={isTransitioning}
-                isTrackAPlaying={isTrackAPlaying}
-                isTrackBPlaying={isTrackBPlaying}
               />
             </CollapsibleCard>
           </div>

@@ -1,5 +1,5 @@
 import { Dices, ExternalLink, Save, Trash2, Sparkles } from 'lucide-react';
-import { getPresetEntryForSeed } from '../VisualizerMode';
+import { getPresetEntryForSeed } from '../visualizerPresets';
 
 const normalizePresetName = (name: string): string => {
   const idx = name.lastIndexOf(' - ');
@@ -133,4 +133,3 @@ export function VisualizerPanel({
     </div>
   );
 }
-

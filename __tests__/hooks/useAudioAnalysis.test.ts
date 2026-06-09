@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { useAudioAnalysis } from '../../src/hooks/useAudioAnalysis';
-import { AudioUtils, RMSAverager, StereoAverager, FrequencyAverager, SpectrogramBuffer } from '../../src/utils/audioAnalysis';
+import { AudioUtils, RMSAverager, StereoAverager } from '../../src/utils/audioAnalysis';
 import type { AudioLevels, StereoAnalysis } from '../../src/utils/audioAnalysis';
 import type { AudioContextNodes } from '../../src/hooks/useAudioContext';
 
@@ -146,7 +146,7 @@ describe('useAudioAnalysis Hook', () => {
 
   describe('Real-time Analysis When Playing', () => {
     it('should start analysis interval when playing', async () => {
-      const { result } = renderHook(() =>
+      renderHook(() =>
         useAudioAnalysis(true, 1, 30, mockGetNodes, mockCallbacks)
       );
 
@@ -250,7 +250,7 @@ describe('useAudioAnalysis Hook', () => {
 
   describe('Cleanup and State Changes', () => {
     it('should cleanup intervals when component unmounts', () => {
-      const { result, unmount } = renderHook(() =>
+      const { unmount } = renderHook(() =>
         useAudioAnalysis(true, 1, 60, mockGetNodes, mockCallbacks)
       );
 
