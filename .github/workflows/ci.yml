@@ -1,0 +1,33 @@
+name: Electron CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  check:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify release script inventory
+        run: npm run release:scripts
+
+      - name: Check app
+        run: npm run check
+
+      - name: Verify icon assets
+        run: npm run build:icon

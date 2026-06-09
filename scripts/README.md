@@ -80,9 +80,8 @@ scripts/upload-installer-mac.js
 scripts/upload-all-platforms.js
 ```
 
-Some secondary helpers still use AWS SDK v2. Removing `aws-sdk` requires either
-migrating those helpers to AWS SDK v3 or removing their package commands from
-the supported tool surface.
+Secondary S3 helpers now use AWS SDK v3 through `scripts/lib/s3-helpers.js`.
+The `aws-sdk` v2 package is not part of the supported release automation.
 
 ## Ignored Legacy Scripts
 

@@ -1,6 +1,7 @@
 import { app, BrowserWindow, Menu, MenuItemConstructorOptions, ipcMain, nativeImage, shell, session } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
+import { buildContentSecurityPolicy } from './security';
 
 let visualizerWindow: BrowserWindow | null = null;
 
@@ -158,9 +159,7 @@ app.whenReady().then(() => {
   // Set up Content Security Policy (CSP)
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     // Basic CSP that allows standard React/Vite functionality but restricts external execution
-    const csp = isDev
-      ? "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: ws://localhost:* http://localhost:* https://fonts.googleapis.com https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com;"
-      : "default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; worker-src 'self' blob:; media-src 'self' blob: data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none';";
+    const csp = buildContentSecurityPolicy(isDev);
 
     callback({
       responseHeaders: {

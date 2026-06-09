@@ -17,6 +17,8 @@ scripts/*
 !scripts/build-exe-installer.js
 !scripts/convert-to-ico.mjs
 !scripts/README.md
+!scripts/lib/
+!scripts/lib/s3-helpers.js
 !scripts/create-installer-mac.js
 !scripts/create-installer.js
 !scripts/create-window-icon.mjs

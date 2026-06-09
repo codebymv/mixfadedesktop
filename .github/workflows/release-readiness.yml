@@ -1,0 +1,43 @@
+name: Electron Release Readiness
+
+on:
+  workflow_dispatch:
+
+jobs:
+  release-readiness:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify release script inventory
+        run: npm run release:scripts
+
+      - name: Check app
+        run: npm run check
+
+      - name: Verify icon assets
+        run: npm run build:icon
+
+      - name: Build Windows installer
+        run: npm run build:exe
+
+      - name: Verify release alignment
+        run: npm run release:verify
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mixfade-windows-installer
+          path: release/MixFade Setup *.exe
+          if-no-files-found: error

@@ -95,7 +95,6 @@
     "@vitejs/plugin-react": "^4.3.4",
     "archiver": "^7.0.1",
     "autoprefixer": "^10.4.20",
-    "aws-sdk": "^2.1691.0",
     "concurrently": "^8.2.2",
     "copyfiles": "^2.4.1",
     "cross-env": "^7.0.3",

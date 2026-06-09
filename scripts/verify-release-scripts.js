@@ -75,6 +75,10 @@ function extractScriptReferences(packageScripts) {
   return references;
 }
 
+function containsAwsSdkV2Import(source) {
+  return /(?:from\s+['"]aws-sdk['"]|require\(\s*['"]aws-sdk['"]\s*\))/.test(source);
+}
+
 const packageJsonPath = path.join(rootDir, 'package.json');
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
 const references = extractScriptReferences(packageJson.scripts ?? {});
@@ -106,6 +110,12 @@ for (const { packageScript, scriptPath } of references) {
 
   if (!tracked) {
     fail(`Package script "${packageScript}" references untracked script: ${scriptPath}`);
+  }
+
+  if (containsAwsSdkV2Import(fs.readFileSync(absolutePath, 'utf8'))) {
+    fail(
+      `Package-referenced script ${scriptPath} imports aws-sdk v2. Use @aws-sdk/* v3 clients or remove the package reference.`
+    );
   }
 }
 

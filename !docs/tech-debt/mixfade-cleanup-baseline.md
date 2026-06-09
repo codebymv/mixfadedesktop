@@ -300,20 +300,51 @@ Verification after release guardrail cleanup:
 - `npm run release:check`: passes.
 - `npm run check`: passes through `release:check` with lint clean, `13 suites / 212 tests`, and production build clean.
 
+Remaining release/distribution debt at that checkpoint:
+
+- The Windows installer is still unsigned, so Windows SmartScreen/security prompts remain expected.
+- Secondary multi-platform/setup scripts still needed AWS SDK v3 migration.
+- Ignored legacy script retirement remained deferred by policy.
+- CI workflow coverage was still missing.
+
+## CI And Release Tooling Modernization Checkpoint
+
+MixFade now has validation workflows and package-referenced release scripts no
+longer depend on AWS SDK v2.
+
+Changes:
+
+- Added Electron GitHub Actions CI at `.github/workflows/ci.yml`.
+- Added a manual Electron release-readiness workflow at `.github/workflows/release-readiness.yml`.
+- Added landing GitHub Actions CI in the sibling `../mixfade-landing` repo.
+- Migrated tracked secondary S3 setup/upload scripts to AWS SDK v3 through `scripts/lib/s3-helpers.js`.
+- Removed the `aws-sdk` v2 dev dependency.
+- Strengthened `npm run release:scripts` so package-referenced scripts fail if they import AWS SDK v2.
+- Extracted production/development CSP construction into `src/main/security.ts`.
+- Added Jest coverage proving production CSP does not allow `unsafe-eval`, localhost HTTP, or localhost websockets.
+- Documented the Electron development CSP warning as Vite dev-only behavior; production CSP remains strict.
+
+Verification after CI and release tooling modernization:
+
+- `npm run release:scripts`: passes.
+- `npm run release:verify`: passes.
+- `npm run release:check`: passes.
+- `npm run check`: passes with lint clean, Jest passing, and production build clean.
+
 Remaining release/distribution debt:
 
 - The Windows installer is still unsigned, so Windows SmartScreen/security prompts remain expected.
-- AWS SDK v2 is still used by secondary multi-platform/setup scripts; the canonical Windows web upload path uses AWS SDK v3.
+- CI exists, but deploy remains manual.
 - Ignored legacy script retirement remains deferred by policy.
-- No CI workflow exists yet for `release:check`.
+- Code signing remains the largest release-quality gap.
+- Optional source refactors remain in `useSmoothedAnalysis.ts`, `WaveformPlayer.tsx`, and selected visualization components only if future change pressure appears.
 
 ## Follow-Up Plan
 
-1. Add CI for `npm run release:check` if/when this repo gets a remote workflow.
+1. Plan Windows code signing.
 2. Decide whether to retire or modernize the remaining ignored legacy installer scripts.
-3. Migrate or retire secondary AWS SDK v2 upload/setup scripts.
-4. Optionally split `src/components/sidebar/analysis/useSmoothedAnalysis.ts` further by extracting per-signal smoothing hooks.
-5. Optionally extract `WaveformPlayer` imperative-handle helpers if the player needs another pass.
+3. Optionally split `src/components/sidebar/analysis/useSmoothedAnalysis.ts` further by extracting per-signal smoothing hooks.
+4. Optionally extract `WaveformPlayer` imperative-handle helpers if the player needs another pass.
 
 ## Guardrails
 
