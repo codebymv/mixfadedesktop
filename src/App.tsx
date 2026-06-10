@@ -1,65 +1,75 @@
-import React, { lazy, Suspense, useState, useCallback, useRef } from 'react';
-import { Activity } from 'lucide-react';
-import { FileUpload } from './components/FileUpload';
-import { ABSwitch } from './components/ABSwitch';
-import { WaveformPlayer } from './components/WaveformPlayer';
-import type { WaveformPlayerRef } from './components/WaveformPlayer';
-import { AnalysisTabs } from './components/AnalysisTabs';
-import { AudioLevels, StereoAnalysis } from './utils/audioAnalysis';
+import { useState, useCallback, useRef } from 'react';
 import { ActivityBar } from './components/ActivityBar';
 import { Sidebar } from './components/Sidebar';
+import Header from './components/Header';
+import { DeckAnalysisWorkspace } from './components/app-shell/DeckAnalysisWorkspace';
+import { UploadMixerSection } from './components/app-shell/UploadMixerSection';
+import { VisualizerOverlay } from './components/app-shell/VisualizerOverlay';
+import type { WaveformPlayerRef } from './components/WaveformPlayer';
+import type { AudioLevels, StereoAnalysis } from './utils/audioAnalysis';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useApplyColorTheme } from './hooks/useColorTheme';
 import { useCrossfade } from './hooks/useCrossfade';
 import { useRecentFiles } from './hooks/useRecentFiles';
 import { useVisualizerState } from './hooks/useVisualizerState';
 import { useSettings } from './contexts/settings-context';
-import Header from './components/Header';
 
 type ActivityId = 'files' | 'analysis' | 'visualizer' | 'settings' | 'help';
-const VisualizerMode = lazy(() =>
-  import('./components/VisualizerMode').then(module => ({
-    default: module.VisualizerMode,
-  }))
-);
+
+const createEmptyAudioLevels = (): AudioLevels => ({
+  left: 0,
+  right: 0,
+  leftRms: 0,
+  rightRms: 0,
+  rms: 0,
+  lufs: -70,
+  leftLufs: -70,
+  rightLufs: -70,
+});
+
+const createNeutralStereoAnalysis = (): StereoAnalysis => ({
+  phaseCorrelation: 0,
+  stereoWidth: 0,
+  balance: 0,
+  midLevel: 0,
+  sideLevel: 0,
+  midLufs: -70,
+  sideLufs: -70,
+  monoCompatibility: 'EXCELLENT',
+});
 
 function App() {
-  // Load settings
   const { settings } = useSettings();
   const activeColorTheme = useApplyColorTheme();
-
-  // Removed getCurrentSettings - using settings directly
-
-  // Clean: removed noisy debug logs
 
   const [trackA, setTrackA] = useState<File | null>(null);
   const [trackB, setTrackB] = useState<File | null>(null);
   const [isTrackAPlaying, setIsTrackAPlaying] = useState(false);
   const [isTrackBPlaying, setIsTrackBPlaying] = useState(false);
-  const [trackAAudioLevels, setTrackAAudioLevels] = useState<AudioLevels>({ left: 0, right: 0, leftRms: 0, rightRms: 0, rms: 0, lufs: -70, leftLufs: -70, rightLufs: -70 });
-  const [trackBAudioLevels, setTrackBAudioLevels] = useState<AudioLevels>({ left: 0, right: 0, leftRms: 0, rightRms: 0, rms: 0, lufs: -70, leftLufs: -70, rightLufs: -70 });
+  const [trackAAudioLevels, setTrackAAudioLevels] = useState<AudioLevels>(createEmptyAudioLevels);
+  const [trackBAudioLevels, setTrackBAudioLevels] = useState<AudioLevels>(createEmptyAudioLevels);
   const [trackAFrequencyData, setTrackAFrequencyData] = useState<Float32Array>(new Float32Array(0));
   const [trackBFrequencyData, setTrackBFrequencyData] = useState<Float32Array>(new Float32Array(0));
-  const [trackAStereoData, setTrackAStereoData] = useState<StereoAnalysis>({ phaseCorrelation: 0, stereoWidth: 0, balance: 0, midLevel: 0, sideLevel: 0, midLufs: -70, sideLufs: -70, monoCompatibility: 'EXCELLENT' });
-  const [trackBStereoData, setTrackBStereoData] = useState<StereoAnalysis>({ phaseCorrelation: 0, stereoWidth: 0, balance: 0, midLevel: 0, sideLevel: 0, midLufs: -70, sideLufs: -70, monoCompatibility: 'EXCELLENT' });
+  const [trackAStereoData, setTrackAStereoData] = useState<StereoAnalysis>(createNeutralStereoAnalysis);
+  const [trackBStereoData, setTrackBStereoData] = useState<StereoAnalysis>(createNeutralStereoAnalysis);
   const [trackALeftSamples, setTrackALeftSamples] = useState<Float32Array>(new Float32Array(0));
   const [trackARightSamples, setTrackARightSamples] = useState<Float32Array>(new Float32Array(0));
   const [trackBLeftSamples, setTrackBLeftSamples] = useState<Float32Array>(new Float32Array(0));
   const [trackBRightSamples, setTrackBRightSamples] = useState<Float32Array>(new Float32Array(0));
-
-  // Deck persistent volume state
   const [deckAVolume, setDeckAVolume] = useState(1.0);
   const [deckBVolume, setDeckBVolume] = useState(1.0);
   const [deckAMuted, setDeckAMuted] = useState(false);
   const [deckBMuted, setDeckBMuted] = useState(false);
-
-  // Playback sync tracking
   const [isLinkedPlayback, setIsLinkedPlayback] = useState(false);
+  const [activeActivity, setActiveActivity] = useState<ActivityId>('files');
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [deckALooping, setDeckALooping] = useState(false);
+  const [deckBLooping, setDeckBLooping] = useState(false);
 
-  // Refs for controlling waveform players
   const waveformPlayerARef = useRef<WaveformPlayerRef>(null);
   const waveformPlayerBRef = useRef<WaveformPlayerRef>(null);
   const lastNonVisualizerActivityRef = useRef<ActivityId>('files');
+
   const {
     activeTrack,
     volumeA,
@@ -74,6 +84,7 @@ function App() {
     crossfadeCurve: settings.audio.crossfadeCurve,
     updateRate: settings.analysis.updateRate,
   });
+
   const {
     recentFiles,
     stageDroppedFiles,
@@ -86,13 +97,6 @@ function App() {
     setTrackB,
   });
 
-  // Navigation state
-  const [activeActivity, setActiveActivity] = useState<ActivityId>('files');
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-
-  // Hoisted loop state for each deck
-  const [deckALooping, setDeckALooping] = useState(false);
-  const [deckBLooping, setDeckBLooping] = useState(false);
   const {
     isVisualizerWindowOpen,
     visualizerSeed,
@@ -128,6 +132,7 @@ function App() {
     setDeckALooping,
     setDeckBLooping,
   });
+
   const handleActivityChange = useCallback((activityId: string) => {
     const nextActivity = activityId as ActivityId;
     setActiveActivity(nextActivity);
@@ -140,26 +145,26 @@ function App() {
     setSidebarCollapsed(prev => !prev);
   }, []);
 
-
-  const hasAnyAudio = trackA || trackB;
-  const hasBothAudio = trackA && trackB;
-  const isLinkPlaybackDisabled = !hasBothAudio;
-  const shouldRenderVisualizer = activeActivity === 'visualizer' || isVisualizerWindowOpen;
-
-  // Stereo data handlers that also capture L/R samples for vectorscope
-  const handleTrackAStereoData = useCallback((data: StereoAnalysis, leftSamples?: Float32Array, rightSamples?: Float32Array) => {
+  const handleTrackAStereoData = useCallback((
+    data: StereoAnalysis,
+    leftSamples?: Float32Array,
+    rightSamples?: Float32Array
+  ) => {
     setTrackAStereoData(data);
     if (leftSamples) setTrackALeftSamples(leftSamples);
     if (rightSamples) setTrackARightSamples(rightSamples);
   }, []);
 
-  const handleTrackBStereoData = useCallback((data: StereoAnalysis, leftSamples?: Float32Array, rightSamples?: Float32Array) => {
+  const handleTrackBStereoData = useCallback((
+    data: StereoAnalysis,
+    leftSamples?: Float32Array,
+    rightSamples?: Float32Array
+  ) => {
     setTrackBStereoData(data);
     if (leftSamples) setTrackBLeftSamples(leftSamples);
     if (rightSamples) setTrackBRightSamples(rightSamples);
   }, []);
 
-  // Handlers for syncing timeline scrubbing between decks
   const handleDeckATimeSeek = useCallback((time: number) => {
     if (isLinkedPlayback && waveformPlayerBRef.current) {
       waveformPlayerBRef.current.setCurrentTime(time);
@@ -172,12 +177,19 @@ function App() {
     }
   }, [isLinkedPlayback]);
 
-  // Keyboard shortcut functions
+  const handleToggleLinkedPlayback = useCallback(() => {
+    setIsLinkedPlayback(linked => !linked);
+  }, []);
+
+  const hasAnyAudio = trackA || trackB;
+  const hasBothAudio = trackA && trackB;
+  const isLinkPlaybackDisabled = !hasBothAudio;
+  const shouldRenderVisualizer = activeActivity === 'visualizer' || isVisualizerWindowOpen;
+  const isVisualizerOverlayVisible = activeActivity === 'visualizer' && !isVisualizerWindowOpen;
+
   const handlePlayPause = useCallback(() => {
-    // If timelines are linked, pressing spacebar toggles both simultaneously
     if (isLinkedPlayback) {
       if (waveformPlayerARef.current && waveformPlayerBRef.current) {
-        // Toggle based on Deck A's current state to ensure they remain perfectly mirrored
         const isPlaying = waveformPlayerARef.current.isPlaying();
         if (isPlaying) {
           waveformPlayerARef.current.pause();
@@ -195,35 +207,33 @@ function App() {
     } else if (activeTrack === 'B' && waveformPlayerBRef.current) {
       waveformPlayerBRef.current.togglePlayPause();
     } else if (activeTrack === 'both') {
-      // If both are active, toggle both
       if (waveformPlayerARef.current) waveformPlayerARef.current.togglePlayPause();
       if (waveformPlayerBRef.current) waveformPlayerBRef.current.togglePlayPause();
     }
   }, [activeTrack, isLinkedPlayback]);
-  // Set up keyboard shortcuts (after all functions are defined)
+
   useKeyboardShortcuts({
-    'space': handlePlayPause,
-    'tab': () => {
+    space: handlePlayPause,
+    tab: () => {
       if (hasBothAudio) {
         handleTrackSwitch('both');
       }
     },
-    // Navigation shortcuts
     'ctrl+b': handleSidebarToggle,
     'ctrl+shift+e': () => handleActivityChange('files'),
     'ctrl+shift+a': () => handleActivityChange('analysis'),
     'ctrl+shift+v': () => handleActivityChange('visualizer'),
     'ctrl+,': () => handleActivityChange('settings'),
-    'f1': () => handleActivityChange('help'),
-    'escape': () => {
+    f1: () => handleActivityChange('help'),
+    escape: () => {
       if (activeActivity === 'visualizer') {
         handleActivityChange('files');
       }
     },
   });
+
   return (
     <div className="h-screen text-white flex">
-      {/* Activity Bar */}
       <ActivityBar
         activeId={activeActivity}
         onActivityChange={handleActivityChange}
@@ -231,7 +241,6 @@ function App() {
         onToggleSidebar={handleSidebarToggle}
       />
 
-      {/* Sidebar */}
       <Sidebar
         activeActivity={activeActivity}
         isCollapsed={sidebarCollapsed}
@@ -241,7 +250,6 @@ function App() {
         onAddDroppedFiles={stageDroppedFiles}
         onLoadToA={setTrackAWithRecent}
         onLoadToB={setTrackBWithRecent}
-        // Analysis data
         trackAFile={trackA || undefined}
         trackBFile={trackB || undefined}
         trackADeckLevels={trackAAudioLevels}
@@ -252,11 +260,9 @@ function App() {
         trackBFrequencyData={trackBFrequencyData}
         isTrackAPlaying={isTrackAPlaying}
         isTrackBPlaying={isTrackBPlaying}
-        // Crossfade data
         isTransitioning={isTransitioning}
         volumeA={volumeA}
         volumeB={volumeB}
-        // Visualizer seed
         visualizerSeed={visualizerSeed}
         onRollVisualizerSeed={rollVisualizerSeed}
         savedVisualizerSeeds={savedVisualizerSeeds}
@@ -267,224 +273,104 @@ function App() {
         isVisualizerWindowOpen={isVisualizerWindowOpen}
       />
 
-      {/* Main Content Area */}
       <div className="flex-1 flex flex-col relative theme-main-shell-background">
-        {/* Header */}
         <Header isEmpty={!hasAnyAudio} />
 
-        {/* Main Content */}
-        <div className={`flex-1 overflow-y-auto transition-all duration-300 ${hasAnyAudio && !hasBothAudio ? 'p-3 space-y-3' : 'p-6 space-y-6'
-          }`}>
-          {/* File Upload Section with Crossfade Control */}
-          <section className={`${!hasAnyAudio ? 'min-h-[60vh] flex items-center justify-center' : ''}`}>
-            <div className={`${!hasAnyAudio ? 'w-full max-w-6xl' : ''}`}>
-              {/* Single Row: Upload A - Crossfade - Upload B */}
-              <div className={`grid grid-cols-1 lg:grid-cols-5 items-center transition-all duration-300 ${hasAnyAudio && !hasBothAudio ? 'gap-3' : 'gap-6'
-                }`}>
-                {/* Audio A Upload - 2 columns */}
-                <div className="lg:col-span-2">
-                  <FileUpload
-                    label="Deck A"
-                    color="green"
-                    file={trackA}
-                    onFileSelect={setTrackAWithRecent}
-                  />
-                </div>
+        <div className={`flex-1 overflow-y-auto transition-all duration-300 ${
+          hasAnyAudio && !hasBothAudio ? 'p-3 space-y-3' : 'p-6 space-y-6'
+        }`}>
+          <UploadMixerSection
+            trackA={trackA}
+            trackB={trackB}
+            hasAnyAudio={Boolean(hasAnyAudio)}
+            hasBothAudio={Boolean(hasBothAudio)}
+            activeColorTheme={activeColorTheme}
+            activeTrack={activeTrack}
+            isTransitioning={isTransitioning}
+            volumeA={volumeA}
+            volumeB={volumeB}
+            crossfadeDirection={currentCrossfadeDirection}
+            onTrackASelect={setTrackAWithRecent}
+            onTrackBSelect={setTrackBWithRecent}
+            onTrackSwitch={handleTrackSwitch}
+          />
 
-                {/* Crossfade Control - 1 column, centered */}
-                <div className="lg:col-span-1 flex justify-center">
-                  {hasBothAudio ? (
-                    <ABSwitch
-                      activeTrack={activeTrack}
-                      onSwitch={handleTrackSwitch}
-                      isTransitioning={isTransitioning}
-                      volumeA={volumeA}
-                      volumeB={volumeB}
-                      crossfadeDirection={currentCrossfadeDirection}
-                    />
-                  ) : (
-                    <div className="w-full h-32 flex items-center justify-center">
-                      <div className="text-audio-text-dim text-sm text-center">
-                        <div className="w-16 h-16 rounded-2xl border-2 border-gradient-to-r from-emerald-500/20 to-purple-500/20 flex items-center justify-center mb-2 mx-auto">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <defs>
-                              <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor={activeColorTheme.deckA.base} />
-                                <stop offset="100%" stopColor={activeColorTheme.deckB.base} />
-                              </linearGradient>
-                            </defs>
-                            <Activity size={24} stroke="url(#iconGradient)" />
-                          </svg>
-                        </div>
-                        <p>Upload both files</p>
-                        <p className="text-xs">to enable crossfade</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Audio B Upload - 2 columns */}
-                <div className="lg:col-span-2">
-                  <FileUpload
-                    label="Deck B"
-                    color="purple"
-                    file={trackB}
-                    onFileSelect={setTrackBWithRecent}
-                  />
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Only show analysis sections when audio is uploaded */}
-          {hasAnyAudio && (
-            <>
-              {/* Waveform Players */}
-              <section className={hasAnyAudio && !hasBothAudio ? 'space-y-4' : 'space-y-6'}>
-                <div className={`grid grid-cols-1 xl:grid-cols-2 transition-all duration-300 ${hasAnyAudio && !hasBothAudio ? 'gap-3' : 'gap-6'
-                  }`}>
-                  {/* Always render first grid item (Track A position) */}
-                  <div className="relative min-h-[200px] rounded-xl transition-all duration-150">
-                    {trackA && (
-                      <WaveformPlayer
-                        ref={waveformPlayerARef}
-                        file={trackA}
-                        color="green"
-                        label="Deck A"
-                        onPlayStateChange={setIsTrackAPlaying}
-                        onAudioLevels={setTrackAAudioLevels}
-                        onFrequencyData={setTrackAFrequencyData}
-                        onStereoData={handleTrackAStereoData}
-                        crossfadeVolume={volumeA}
-                        deckVolume={deckAVolume}
-                        onDeckVolumeChange={setDeckAVolume}
-                        isMuted={deckAMuted}
-                        onMuteChange={setDeckAMuted}
-                        isLooping={deckALooping}
-                        onLoopChange={setDeckALooping}
-                        isLinkedPlayback={isLinkedPlayback}
-                        isLinkPlaybackDisabled={isLinkPlaybackDisabled}
-                        onTimeSeek={handleDeckATimeSeek}
-                        onToggleLinkedPlayback={() => setIsLinkedPlayback(!isLinkedPlayback)}
-                      />
-                    )}
-                  </div>
-
-                  {/* Always render second grid item (Track B position) */}
-                  <div className="relative min-h-[200px] rounded-xl transition-all duration-150">
-                    {trackB && (
-                      <WaveformPlayer
-                        ref={waveformPlayerBRef}
-                        file={trackB}
-                        color="purple"
-                        label="Deck B"
-                        isSidebarCollapsed={sidebarCollapsed}
-                        onPlayStateChange={setIsTrackBPlaying}
-                        onAudioLevels={setTrackBAudioLevels}
-                        onFrequencyData={setTrackBFrequencyData}
-                        onStereoData={handleTrackBStereoData}
-                        crossfadeVolume={volumeB}
-                        deckVolume={deckBVolume}
-                        onDeckVolumeChange={setDeckBVolume}
-                        isMuted={deckBMuted}
-                        onMuteChange={setDeckBMuted}
-                        isLooping={deckBLooping}
-                        onLoopChange={setDeckBLooping}
-                        isLinkedPlayback={isLinkedPlayback}
-                        isLinkPlaybackDisabled={isLinkPlaybackDisabled}
-                        onTimeSeek={handleDeckBTimeSeek}
-                        onToggleLinkedPlayback={() => setIsLinkedPlayback(!isLinkedPlayback)}
-                      />
-                    )}
-                  </div>
-                </div>
-              </section>
-
-              {/* Analysis Tabs */}
-              <section className={hasAnyAudio && !hasBothAudio ? 'space-y-2' : 'space-y-4'}>
-                <div className={`grid grid-cols-1 md:grid-cols-2 transition-all duration-300 ${hasAnyAudio && !hasBothAudio ? 'gap-3' : 'gap-6'
-                  }`}>
-                  {/* Always render first grid item (Track A position) */}
-                  <div style={{ height: '365px' }}>
-                    {trackA && (
-                      <AnalysisTabs
-                        label="Deck A Analysis"
-                        color="green"
-                        audioLevels={trackAAudioLevels}
-                        frequencyData={trackAFrequencyData}
-                        stereoData={trackAStereoData}
-                        leftSamples={trackALeftSamples}
-                        rightSamples={trackARightSamples}
-                        isPlaying={isTrackAPlaying}
-                        crossfadeVolume={volumeA}
-                      />
-                    )}
-                  </div>
-
-                  {/* Always render second grid item (Track B position) */}
-                  <div style={{ height: '365px' }}>
-                    {trackB && (
-                      <AnalysisTabs
-                        label="Deck B Analysis"
-                        color="purple"
-                        audioLevels={trackBAudioLevels}
-                        frequencyData={trackBFrequencyData}
-                        stereoData={trackBStereoData}
-                        leftSamples={trackBLeftSamples}
-                        rightSamples={trackBRightSamples}
-                        isPlaying={isTrackBPlaying}
-                        crossfadeVolume={volumeB}
-                      />
-                    )}
-                  </div>
-                </div>
-              </section>
-            </>
-          )}
+          <DeckAnalysisWorkspace
+            hasAnyAudio={Boolean(hasAnyAudio)}
+            hasBothAudio={Boolean(hasBothAudio)}
+            trackA={trackA}
+            trackB={trackB}
+            waveformPlayerARef={waveformPlayerARef}
+            waveformPlayerBRef={waveformPlayerBRef}
+            sidebarCollapsed={sidebarCollapsed}
+            trackAAudioLevels={trackAAudioLevels}
+            trackBAudioLevels={trackBAudioLevels}
+            trackAFrequencyData={trackAFrequencyData}
+            trackBFrequencyData={trackBFrequencyData}
+            trackAStereoData={trackAStereoData}
+            trackBStereoData={trackBStereoData}
+            trackALeftSamples={trackALeftSamples}
+            trackARightSamples={trackARightSamples}
+            trackBLeftSamples={trackBLeftSamples}
+            trackBRightSamples={trackBRightSamples}
+            isTrackAPlaying={isTrackAPlaying}
+            isTrackBPlaying={isTrackBPlaying}
+            volumeA={volumeA}
+            volumeB={volumeB}
+            deckAVolume={deckAVolume}
+            deckBVolume={deckBVolume}
+            deckAMuted={deckAMuted}
+            deckBMuted={deckBMuted}
+            deckALooping={deckALooping}
+            deckBLooping={deckBLooping}
+            isLinkedPlayback={isLinkedPlayback}
+            isLinkPlaybackDisabled={Boolean(isLinkPlaybackDisabled)}
+            onTrackAPlayStateChange={setIsTrackAPlaying}
+            onTrackBPlayStateChange={setIsTrackBPlaying}
+            onTrackAAudioLevels={setTrackAAudioLevels}
+            onTrackBAudioLevels={setTrackBAudioLevels}
+            onTrackAFrequencyData={setTrackAFrequencyData}
+            onTrackBFrequencyData={setTrackBFrequencyData}
+            onTrackAStereoData={handleTrackAStereoData}
+            onTrackBStereoData={handleTrackBStereoData}
+            onDeckAVolumeChange={setDeckAVolume}
+            onDeckBVolumeChange={setDeckBVolume}
+            onDeckAMuteChange={setDeckAMuted}
+            onDeckBMuteChange={setDeckBMuted}
+            onDeckALoopChange={setDeckALooping}
+            onDeckBLoopChange={setDeckBLooping}
+            onDeckATimeSeek={handleDeckATimeSeek}
+            onDeckBTimeSeek={handleDeckBTimeSeek}
+            onToggleLinkedPlayback={handleToggleLinkedPlayback}
+          />
         </div>
 
-        {/* Visualizer Overlay */}
-        <div
-          className={`absolute inset-0 transition-opacity duration-150 ${
-            activeActivity === 'visualizer' && !isVisualizerWindowOpen
-              ? 'z-50 opacity-100 pointer-events-auto'
-              : 'z-0 opacity-0 pointer-events-none'
-          }`}
-          aria-hidden={activeActivity !== 'visualizer' || isVisualizerWindowOpen}
-        >
-          {shouldRenderVisualizer && (
-            <Suspense fallback={null}>
-              <VisualizerMode
-                trackAFile={trackA}
-                trackBFile={trackB}
-                audioNodesA={visualizerAudioNodesA}
-                audioNodesB={visualizerAudioNodesB}
-                isTrackAPlaying={isTrackAPlaying}
-                isTrackBPlaying={isTrackBPlaying}
-                volumeA={visualizerMixA}
-                volumeB={visualizerMixB}
-                isTransitioning={isTransitioning}
-                isActive={activeActivity === 'visualizer' && !isVisualizerWindowOpen}
-                seed={visualizerSeed}
-                onPlayPause={handlePlayPause}
-                isLoopingA={deckALooping}
-                isLoopingB={deckBLooping}
-                onToggleLoop={toggleVisualizerLoop}
-                onRollSeed={rollVisualizerSeed}
-                onSaveSeed={saveVisualizerSeed}
-                isSeedSaved={savedVisualizerSeeds.some(s => s.seed === visualizerSeed)}
-                onExternalWindowReady={handleExternalVisualizerReady}
-                onExternalWindowStateChange={handleExternalVisualizerWindowStateChange}
-              />
-            </Suspense>
-          )}
-        </div>
+        <VisualizerOverlay
+          isVisible={isVisualizerOverlayVisible}
+          shouldRenderVisualizer={shouldRenderVisualizer}
+          trackA={trackA}
+          trackB={trackB}
+          audioNodesA={visualizerAudioNodesA}
+          audioNodesB={visualizerAudioNodesB}
+          isTrackAPlaying={isTrackAPlaying}
+          isTrackBPlaying={isTrackBPlaying}
+          volumeA={visualizerMixA}
+          volumeB={visualizerMixB}
+          isTransitioning={isTransitioning}
+          seed={visualizerSeed}
+          isLoopingA={deckALooping}
+          isLoopingB={deckBLooping}
+          onToggleLoop={toggleVisualizerLoop}
+          onRollSeed={rollVisualizerSeed}
+          onSaveSeed={saveVisualizerSeed}
+          onPlayPause={handlePlayPause}
+          isSeedSaved={savedVisualizerSeeds.some(seedEntry => seedEntry.seed === visualizerSeed)}
+          onExternalWindowReady={handleExternalVisualizerReady}
+          onExternalWindowStateChange={handleExternalVisualizerWindowStateChange}
+        />
       </div>
     </div>
   );
 }
 
 export default App;
-
-
-

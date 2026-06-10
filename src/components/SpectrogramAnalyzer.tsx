@@ -1,7 +1,15 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { SpectrogramAnalysis, SpectrogramBuffer, SpectrogramAverager, calculateSpectrogramMetrics } from '../utils/audioAnalysis';
-import { formatActivity, formatActivityLabel, formatMixPercent, formatToneVsNoise, getActivityColor, getBrightnessColor, getDynamicRangeColor, getMixToneClass, getToneVsNoiseColor } from '../utils/analysisFormatters';
-import { InsightMetricCard } from './analysis/InsightMetricCard';
+import { useRef, useEffect, useState } from 'react';
+import {
+  SpectrogramBuffer,
+  SpectrogramAverager,
+  calculateSpectrogramMetrics,
+} from '../utils/audioAnalysis';
+import type { SpectrogramAnalysis } from '../utils/audioAnalysis';
+import { getMixToneClass } from '../utils/analysisFormatters';
+import { SpectrogramMetricCards } from './spectrogram-analyzer/SpectrogramMetricCards';
+import { SpectrogramMetricsGrid } from './spectrogram-analyzer/SpectrogramMetricsGrid';
+import { SpectrogramStatusFooter } from './spectrogram-analyzer/SpectrogramStatusFooter';
+import { drawSpectrogramCanvas } from './spectrogram-analyzer/spectrogramCanvas';
 
 interface SpectrogramAnalyzerProps {
   frequencyData: Float32Array;
@@ -10,70 +18,63 @@ interface SpectrogramAnalyzerProps {
   crossfadeVolume?: number;
 }
 
-export function SpectrogramAnalyzer({ 
-  frequencyData, 
-  isActive, 
-  isPlaying, 
-  crossfadeVolume = 1 
+const createNeutralSpectrogramAnalysis = (): SpectrogramAnalysis => ({
+  brightness: 0,
+  dynamicRange: 0,
+  activity: 0,
+  toneVsNoise: 0,
+  highFreqContent: 0,
+});
+
+export function SpectrogramAnalyzer({
+  frequencyData,
+  isActive,
+  isPlaying,
+  crossfadeVolume = 1,
 }: SpectrogramAnalyzerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const spectrogramBuffer = useRef<SpectrogramBuffer | null>(null);
   const spectrogramAverager = useRef<SpectrogramAverager | null>(null);
-  
-  const [displayData, setDisplayData] = useState<SpectrogramAnalysis>({
-    brightness: 0,
-    dynamicRange: 0,
-    activity: 0,
-    toneVsNoise: 0,
-    highFreqContent: 0
-  });
 
-  // Initialize spectrogram buffer and averager
+  const [displayData, setDisplayData] = useState<SpectrogramAnalysis>(
+    createNeutralSpectrogramAnalysis
+  );
+
   useEffect(() => {
     if (!spectrogramBuffer.current) {
-      // 5 seconds window, 100ms updates (matches sidebar analysis)
       spectrogramBuffer.current = new SpectrogramBuffer(5000, 100);
     }
+
     if (!spectrogramAverager.current) {
-      // 300ms window, 100ms updates (matches sidebar analysis)
       spectrogramAverager.current = new SpectrogramAverager(300, 100);
     }
   }, []);
 
-  // Reset buffer and averager when playback stops
   useEffect(() => {
     if (!isPlaying && spectrogramBuffer.current && spectrogramAverager.current) {
       spectrogramBuffer.current.reset();
       spectrogramAverager.current.reset();
-      setDisplayData({
-        brightness: 0,
-        dynamicRange: 0,
-        activity: 0,
-        toneVsNoise: 0,
-        highFreqContent: 0
-      });
+      setDisplayData(createNeutralSpectrogramAnalysis());
     }
   }, [isPlaying]);
 
-  // Update spectrogram data from frequency analysis (using same logic as sidebar)
   useEffect(() => {
     if (!isActive) {
-      setDisplayData({
-        brightness: 0,
-        dynamicRange: 0,
-        activity: 0,
-        toneVsNoise: 0,
-        highFreqContent: 0
-      });
+      setDisplayData(createNeutralSpectrogramAnalysis());
       return;
     }
 
     if (frequencyData && isPlaying && spectrogramBuffer.current && spectrogramAverager.current) {
-      // Calculate spectrogram metrics from raw FFT data (same as sidebar)
-      const spectrogramAnalysis = calculateSpectrogramMetrics(frequencyData, spectrogramBuffer.current, 48000, true, isPlaying);
-      
+      const spectrogramAnalysis = calculateSpectrogramMetrics(
+        frequencyData,
+        spectrogramBuffer.current,
+        48000,
+        true,
+        isPlaying
+      );
+
       const shouldUpdate = spectrogramAverager.current.addSample(spectrogramAnalysis);
-      
+
       if (shouldUpdate) {
         const smoothed = spectrogramAverager.current.getSmoothedValues();
         setDisplayData(smoothed);
@@ -81,242 +82,43 @@ export function SpectrogramAnalyzer({
     }
   }, [isActive, isPlaying, frequencyData]);
 
-  // Professional spectrogram visualization
   useEffect(() => {
-    let animationFrameId: number;
+    let animationFrameId: number | undefined;
 
     const renderCanvas = () => {
       const canvas = canvasRef.current;
-      if (!canvas || !spectrogramBuffer.current) return;
+      const buffer = spectrogramBuffer.current;
 
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      if (!canvas || !buffer) return;
 
-      // Set canvas size to match container with device pixel ratio
-      const rect = canvas.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      
-      ctx.scale(dpr, dpr);
-      
-      const width = rect.width;
-      const height = rect.height;
-
-      // Clear canvas with dark background
-      ctx.fillStyle = '#0f172a';
-      ctx.fillRect(0, 0, width, height);
-
-      if (!isActive) return;
-
-      // Professional frequency constants
-      const minFreq = 20;
-      const maxFreq = 20000;
-      const minDb = -60;
-      const maxDb = 0;
-
-      // Get visible snapshots
-      const snapshots = spectrogramBuffer.current.getVisibleSnapshots();
-      if (snapshots.length === 0) return;
-
-      // Calculate time range
-      const timeWindowMs = spectrogramBuffer.current.getTimeWindowMs();
-
-      // Frequency axis setup (logarithmic)
-      const logMinFreq = Math.log10(minFreq);
-      const logMaxFreq = Math.log10(maxFreq);
-      const logFreqRange = logMaxFreq - logMinFreq;
-
-      // Convert frequency to Y position (inverted, high freq at top)
-      const freqToY = (freq: number): number => {
-        const logFreq = Math.log10(Math.max(freq, minFreq));
-        const normalizedLog = (logFreq - logMinFreq) / logFreqRange;
-        return height - (normalizedLog * height); // Invert Y axis
-      };
-
-      // Convert dB to color
-      const dbToColor = (db: number): string => {
-        const normalized = Math.max(0, Math.min(1, (db - minDb) / (maxDb - minDb)));
-        
-        // Professional spectrogram color mapping: blue -> green -> yellow -> red
-        if (normalized < 0.25) {
-          // Blue to cyan
-          const t = normalized / 0.25;
-          const r = Math.floor(0 * (1 - t) + 0 * t);
-          const g = Math.floor(100 * (1 - t) + 150 * t);
-          const b = Math.floor(255 * (1 - t) + 255 * t);
-          return `rgb(${r},${g},${b})`;
-        } else if (normalized < 0.5) {
-          // Cyan to green
-          const t = (normalized - 0.25) / 0.25;
-          const r = Math.floor(0 * (1 - t) + 0 * t);
-          const g = Math.floor(150 * (1 - t) + 255 * t);
-          const b = Math.floor(255 * (1 - t) + 0 * t);
-          return `rgb(${r},${g},${b})`;
-        } else if (normalized < 0.75) {
-          // Green to yellow
-          const t = (normalized - 0.5) / 0.25;
-          const r = Math.floor(0 * (1 - t) + 255 * t);
-          const g = Math.floor(255 * (1 - t) + 255 * t);
-          const b = Math.floor(0 * (1 - t) + 0 * t);
-          return `rgb(${r},${g},${b})`;
-        } else {
-          // Yellow to red
-          const t = (normalized - 0.75) / 0.25;
-          const r = Math.floor(255 * (1 - t) + 255 * t);
-          const g = Math.floor(255 * (1 - t) + 0 * t);
-          const b = Math.floor(0 * (1 - t) + 0 * t);
-          return `rgb(${r},${g},${b})`;
-        }
-      };
-
-      // Draw spectrogram columns
-      const columnWidth = Math.max(1, width / Math.max(snapshots.length, 100));
-      
-      snapshots.forEach((snapshot, index) => {
-        const x = (index / Math.max(snapshots.length - 1, 1)) * width;
-        const freqData = snapshot.frequencyData;
-        const sampleRate = snapshot.sampleRate;
-        const nyquist = sampleRate / 2;
-        const freqResolution = nyquist / freqData.length;
-
-        // Draw frequency bins as vertical strips
-        for (let binIndex = 1; binIndex < freqData.length; binIndex++) {
-          const freq = binIndex * freqResolution;
-          
-          // Only draw audible frequencies
-          if (freq >= minFreq && freq <= maxFreq) {
-            const y1 = freqToY(freq);
-            const y2 = freqToY(freq + freqResolution);
-            const magnitude = freqData[binIndex];
-            
-            ctx.fillStyle = dbToColor(magnitude);
-            ctx.fillRect(x, Math.min(y1, y2), columnWidth, Math.abs(y2 - y1) + 1);
-          }
-        }
-      });
-
-      // Draw professional grid overlay
-      ctx.strokeStyle = '#334155';
-      ctx.lineWidth = 0.5;
-      ctx.font = '10px monospace';
-      ctx.fillStyle = '#64748b';
-
-      // Frequency grid lines and labels
-      const freqMarkers = [50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
-      freqMarkers.forEach(freq => {
-        if (freq >= minFreq && freq <= maxFreq) {
-          const y = freqToY(freq);
-          
-          // Grid line
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(width, y);
-          ctx.stroke();
-          
-          // Label
-          ctx.textAlign = 'left';
-          ctx.fillText(freq >= 1000 ? `${freq/1000}k` : `${freq}`, 2, y - 2);
-        }
-      });
-
-      // Time grid lines
-      const timeIntervals = [1000, 2000, 3000, 4000]; // 1s intervals
-      timeIntervals.forEach(intervalMs => {
-        const x = (intervalMs / timeWindowMs) * width;
-        if (x < width) {
-          ctx.beginPath();
-          ctx.moveTo(x, 0);
-          ctx.lineTo(x, height);
-          ctx.stroke();
-          
-          // Time label
-          ctx.textAlign = 'center';
-          ctx.fillText(`${intervalMs/1000}s`, x, height - 5);
-        }
+      drawSpectrogramCanvas({
+        canvas,
+        buffer,
+        isActive,
       });
     };
 
     if (isActive && isPlaying) {
-        animationFrameId = requestAnimationFrame(renderCanvas);
+      animationFrameId = requestAnimationFrame(renderCanvas);
     } else {
-        renderCanvas();
+      renderCanvas();
     }
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId !== undefined) {
+        cancelAnimationFrame(animationFrameId);
+      }
     };
   }, [isActive, isPlaying, frequencyData]);
-
-  // Format frequency for display
-  const formatFrequency = (freq: number): string => {
-    if (freq >= 1000) {
-      return `${(freq / 1000).toFixed(1)}k`;
-    }
-    return `${freq}`;
-  };
-
-
-
-  // Get frequency-based colors to match FrequencyVisualizer exactly
-  const getFrequencyColor = (freq: number) => {
-    if (freq < 200) {
-      // Bass: Red
-      return { text: 'text-red-400', bg: 'bg-red-500' };
-    } else if (freq < 2000) {
-      // Mid: Orange  
-      return { text: 'text-orange-400', bg: 'bg-orange-500' };
-    } else if (freq < 8000) {
-      // Upper Mid: Green
-      return { text: 'text-green-400', bg: 'bg-green-500' };
-    } else {
-      // High (>= 8000Hz): Purple
-      return { text: 'text-purple-400', bg: 'bg-purple-500' };
-    }
-  };
-
-  // Get dynamic range background color to match the analysis panel
-  const getDynamicRangeBgColor = (rangeDb: number) => {
-    const textColor = getDynamicRangeColor(rangeDb);
-    // Convert text color classes to background color classes
-    if (textColor.includes('green')) return 'bg-green-500';
-    if (textColor.includes('yellow')) return 'bg-yellow-500';
-    if (textColor.includes('orange')) return 'bg-orange-500';
-    return 'bg-red-500';
-  };
 
   const mixToneClass = getMixToneClass(crossfadeVolume, isPlaying);
   const transportLabel = crossfadeVolume === 0 ? 'MUTED' : isPlaying ? 'PLAYING' : 'PAUSED';
 
   return (
     <div className="h-full flex flex-col">
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-2 shrink-0">
-        <InsightMetricCard
-          label="Energy"
-          value={formatActivityLabel(displayData.activity)}
-          valueClassName={getActivityColor(displayData.activity)}
-        />
-        <InsightMetricCard
-          label="Bright"
-          value={`${formatFrequency(displayData.brightness)} Hz`}
-          valueClassName={getBrightnessColor(displayData.brightness)}
-        />
-        <InsightMetricCard
-          label="Range"
-          value={`${displayData.dynamicRange.toFixed(1)} dB`}
-          valueClassName={getDynamicRangeColor(displayData.dynamicRange)}
-        />
-        <InsightMetricCard
-          label="Tone"
-          value={formatToneVsNoise(displayData.toneVsNoise)}
-          valueClassName={getToneVsNoiseColor(displayData.toneVsNoise)}
-        />
-      </div>
+      <SpectrogramMetricCards displayData={displayData} />
 
-      {/* Main Content - Reduced spacing */}
       <div className="flex-1 grid grid-cols-1 xl:grid-cols-2 gap-4 mt-3 shrink-0">
-        {/* Spectrogram Visualization */}
         <div className="space-y-1.5">
           <div className="relative">
             <canvas
@@ -333,121 +135,17 @@ export function SpectrogramAnalyzer({
           </div>
         </div>
 
-        {/* Metrics Panel */}
-        <div className="space-y-2.5">
-          {/* Brightness (Spectral Centroid) */}
-          <div>
-            <div className="flex justify-between text-xs text-slate-400 mb-1">
-              <span className="uppercase tracking-[0.12em] whitespace-nowrap">Bright</span>
-              <span className={`font-mono font-bold tabular-nums whitespace-nowrap ${getFrequencyColor(displayData.brightness).text}`}>
-                {formatFrequency(displayData.brightness)} Hz
-              </span>
-            </div>
-            <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
-              <div 
-                className={`h-full ${getFrequencyColor(displayData.brightness).bg} rounded-full transition-all duration-200`}
-                style={{ width: `${Math.min(100, (Math.log10(Math.max(displayData.brightness, 20) / 20) / Math.log10(1000)) * 100)}%` }}
-              />
-            </div>
-          </div>
-
-          {/* High Frequency Content (Spectral Rolloff) */}
-          <div>
-            <div className="flex justify-between text-xs text-slate-400 mb-1">
-              <span className="uppercase tracking-[0.12em] whitespace-nowrap">Roll</span>
-              <span className={`font-mono font-bold tabular-nums whitespace-nowrap ${getFrequencyColor(displayData.highFreqContent).text}`}>
-                {formatFrequency(displayData.highFreqContent)} Hz
-              </span>
-            </div>
-            <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
-              <div 
-                className={`h-full ${getFrequencyColor(displayData.highFreqContent).bg} rounded-full transition-all duration-200`}
-                style={{ width: `${Math.min(100, (Math.log10(Math.max(displayData.highFreqContent, 20) / 20) / Math.log10(1000)) * 100)}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Activity (Spectral Change Rate) */}
-          <div>
-            <div className="flex justify-between text-xs text-slate-400 mb-1">
-              <span className="uppercase tracking-[0.12em] whitespace-nowrap">Activity</span>
-              <span className={`font-mono font-bold tabular-nums whitespace-nowrap ${getActivityColor(displayData.activity)}`}>
-                {formatActivity(displayData.activity)}%
-              </span>
-            </div>
-            <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
-              <div 
-                className={`h-full rounded-full transition-all duration-200 ${
-                  displayData.activity > 0.8 ? 'bg-red-500' :
-                  displayData.activity > 0.6 ? 'bg-orange-500' :
-                  displayData.activity > 0.4 ? 'bg-yellow-500' :
-                  displayData.activity > 0.2 ? 'bg-green-500' : 'bg-green-500'
-                }`}
-                style={{ width: `${displayData.activity * 100}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Dynamic Range & Harmonic Content */}
-          <div className="grid grid-cols-2 gap-3 pt-1.5 border-t border-slate-700/50">
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-400 font-medium uppercase tracking-[0.12em] whitespace-nowrap">Range</span>
-                <span className={`font-mono font-bold text-xs tabular-nums whitespace-nowrap ${getDynamicRangeColor(displayData.dynamicRange)}`}>
-                  {displayData.dynamicRange.toFixed(1)}dB
-                </span>
-              </div>
-              <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${getDynamicRangeBgColor(displayData.dynamicRange)} rounded-full transition-all duration-200`}
-                  style={{ width: `${Math.min(100, (displayData.dynamicRange / 40) * 100)}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-400 font-medium uppercase tracking-[0.12em] whitespace-nowrap">Tone</span>
-                <span className={`font-mono font-bold text-xs tabular-nums whitespace-nowrap ${getToneVsNoiseColor(displayData.toneVsNoise)}`}>
-                  {formatToneVsNoise(displayData.toneVsNoise)}
-                </span>
-              </div>
-              <div className="h-1.5 bg-slate-900 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full transition-all duration-200 ${
-                    displayData.toneVsNoise > 0.7 ? 'bg-green-500' :
-                    displayData.toneVsNoise > 0.4 ? 'bg-yellow-500' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${displayData.toneVsNoise * 100}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <SpectrogramMetricsGrid displayData={displayData} />
       </div>
 
-      {/* Anchor spacer */}
       <div className="flex-1" />
 
-      {/* Standardized Footer block */}
-      <div className="shrink-0 pt-2 border-t border-slate-700/50">
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-lg bg-slate-900/60 px-2.5 py-2 min-w-0">
-            <div className="uppercase tracking-[0.12em] text-slate-500 whitespace-nowrap">Mix</div>
-            <div className={`mt-1 font-mono font-bold tabular-nums whitespace-nowrap ${mixToneClass}`}>{formatMixPercent(crossfadeVolume)}</div>
-          </div>
-          <div className="rounded-lg bg-slate-900/60 px-2.5 py-2 min-w-0">
-            <div className="uppercase tracking-[0.12em] text-slate-500 whitespace-nowrap">State</div>
-            <div className={`mt-1 flex items-center gap-1.5 font-mono font-bold tabular-nums whitespace-nowrap ${mixToneClass}`}>
-              <div className={`w-2 h-2 rounded-full ${
-                crossfadeVolume === 0 ? 'bg-red-500' :
-                isPlaying ? 'bg-[var(--theme-deck-a-base)] animate-pulse' : 'bg-slate-500'
-              }`}></div>
-              <span>{transportLabel}</span>
-            </div>
-          </div>
-        </div>
-      </div>
+      <SpectrogramStatusFooter
+        crossfadeVolume={crossfadeVolume}
+        isPlaying={isPlaying}
+        mixToneClass={mixToneClass}
+        transportLabel={transportLabel}
+      />
     </div>
   );
-}
+}
